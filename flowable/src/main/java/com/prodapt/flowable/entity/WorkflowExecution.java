@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -37,9 +38,18 @@ public class WorkflowExecution {
 	@JoinColumn(name = "task_id")
 	Task task;
 
+	boolean completed = false;
+	ZonedDateTime completedTime;
+	ZonedDateTime lastUpdated;
+
 	@PrePersist
 	public void setCreatedAt() {
 		this.createdAt = ZonedDateTime.now();
+	}
+
+	@PreUpdate
+	public void setLastUpdated() {
+		this.lastUpdated = ZonedDateTime.now();
 	}
 
 }
