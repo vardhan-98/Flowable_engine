@@ -1,6 +1,5 @@
 package com.prodapt.flowable.entity;
 
-import java.time.ZonedDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -8,6 +7,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.CascadeType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,10 +32,11 @@ public class Employee {
 	@OneToMany(mappedBy = "assignedEmployee", cascade = CascadeType.ALL)
 	@JsonIgnore
 	List<Task> tasks;
-	//Let these two always be in UTC
-	ZonedDateTime shiftStart;
-	ZonedDateTime shiftEnd;
+	@ManyToOne
+	@JoinColumn(name = "employee_shift_id")
+	Shift shift;
 	String firstName;
 	String lastName;
+	boolean isActive;
 
 }

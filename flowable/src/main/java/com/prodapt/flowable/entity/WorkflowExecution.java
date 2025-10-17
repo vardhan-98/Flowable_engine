@@ -41,6 +41,7 @@ public class WorkflowExecution {
 	boolean completed = false;
 	ZonedDateTime completedTime;
 	ZonedDateTime lastUpdated;
+	Integer reScheduleCount;
 
 	@PrePersist
 	public void setCreatedAt() {

@@ -1,13 +1,11 @@
 package com.prodapt.flowable.entity;
 
-import java.time.ZonedDateTime;
+import java.time.LocalTime;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,17 +14,14 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Leave {
+public class Shift {
 
-	//Let this be autogen
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Id
 	Long id;
-	String type;
-	ZonedDateTime startTime;
-	ZonedDateTime endTime;
-	@ManyToOne
-	@JoinColumn(name = "employee_att_uid")
-	Employee employee;
+	String code;
+	LocalTime startTime;
+	LocalTime endTime;
+	int duration;
 
 }
