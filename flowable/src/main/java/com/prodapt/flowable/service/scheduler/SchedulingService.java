@@ -133,14 +133,26 @@ public class SchedulingService {
      * Assigns the given WorkflowExecution to an employee for the specified slot.
      * Selects the least occupied employee (by total devices for the day) who has capacity in the slot.
      * If the employee has an existing task in the slot, adds the workflow to it; otherwise, creates a new task.
+     * Also detaches the workflow from any previous task assignment.
      *
-     * @param workflowExec The newly created WorkflowExecution to assign.
+     * @param workflowExec The WorkflowExecution to assign (may already be assigned to a previous task).
      * @param slotStart The start time of the selected slot in UTC.
      * @param skill The required skill for the assignment.
      * @throws RuntimeException if no available employee is found.
      */
     @Transactional
     public void assignWorkflowToEmployee(WorkflowExecution workflowExec, ZonedDateTime slotStart, String skill) {
+
+        // Detach from existing task if assigned
+        Task previousTask = workflowExec.getTask();
+        if (previousTask != null) {
+            previousTask.getWorkflows().remove(workflowExec);
+            if (previousTask.getWorkflowCount() != null && previousTask.getWorkflowCount() > 0) {
+                previousTask.setWorkflowCount(previousTask.getWorkflowCount() - 1);
+            }
+            workflowExec.setTask(null);
+            taskRepository.save(previousTask);
+        }
         ZonedDateTime slotEnd = slotStart.plusHours(4);
         ZonedDateTime dayStart = slotStart.truncatedTo(ChronoUnit.DAYS);
         ZonedDateTime dayEnd = dayStart.plusDays(1);

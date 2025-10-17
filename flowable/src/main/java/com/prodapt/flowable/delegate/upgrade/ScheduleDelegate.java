@@ -1,7 +1,6 @@
 package com.prodapt.flowable.delegate.upgrade;
 
 import java.time.ZonedDateTime;
-import java.util.List;
 import org.flowable.engine.delegate.DelegateExecution;
 import org.flowable.engine.delegate.JavaDelegate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,28 +42,30 @@ public class ScheduleDelegate implements JavaDelegate {
             WorkflowExecution workflowExec = workflowExecutionRepository.findById(flowId)
                     .orElseThrow(() -> new RuntimeException("Workflow execution not found: " + flowId));
 
-            ZonedDateTime now = ZonedDateTime.now();
-            ZonedDateTime start = now.plusDays(30);
-            ZonedDateTime end = start.plusDays(60); // Search for 30 days to find available slots
+            // Get the scheduled time from execution variables (set by the controller)
+            ZonedDateTime scheduledTime = (ZonedDateTime) execution.getVariable("scheduledUpgradeDateTime");
 
-            String skill = "upgrade"; // Assuming skill is "upgrade" for device upgrades
+            if (scheduledTime != null) {
+                String skill = "upgrade"; // Assuming skill is "upgrade" for device upgrades
 
-            List<ZonedDateTime> availableSlots = schedulingService.getAvailableSlots(start, end, skill);
+                // Directly assign to the specified time slot without checking availability
+                workflowExec.setScheduledTime(scheduledTime);
+                schedulingService.assignWorkflowToEmployee(workflowExec, scheduledTime, skill);
 
-            if (!availableSlots.isEmpty()) {
-                ZonedDateTime firstSlot = availableSlots.get(0);
-                workflowExec.setScheduledTime(firstSlot);
-                schedulingService.assignWorkflowToEmployee(workflowExec, firstSlot, skill);
+                // Set execution variables for workflow timers
+                execution.setVariable("scheduledUpgradeDateTime", scheduledTime);
+                ZonedDateTime preUpgradeTime = scheduledTime.minusDays(7);
+                execution.setVariable("preUpgradeDateTime", preUpgradeTime);
 
                 workflowExecutionRepository.save(workflowExec);
 
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "schedule", "COMPLETED",
-                        "Scheduled at: " + firstSlot);
-                log.info("Workflow {} scheduled at: {}", flowId, firstSlot);
+                        "Scheduled at: " + scheduledTime);
+                log.info("Workflow {} scheduled at: {}", flowId, scheduledTime);
             } else {
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "schedule", "FAILED",
-                        "No available slots in the next 60 days starting 30 days from now");
-                throw new RuntimeException("No available slots for scheduling");
+                        "No scheduled time provided in execution variables");
+                throw new RuntimeException("No scheduled time available for scheduling");
             }
         } catch (Exception e) {
             log.error("Error in ScheduleDelegate: ", e);

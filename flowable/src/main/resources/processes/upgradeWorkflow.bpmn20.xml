@@ -1,313 +1,256 @@
-<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL"
-	xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
-	xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
-	xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
-	xmlns:flowable="http://flowable.org/bpmn" id="sample-diagram"
-	targetNamespace="http://bpmn.io/schema/bpmn"
-	xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
-	<bpmn2:message id="Message_Reschedule" name="RescheduleMessage" />
-	<bpmn2:message id="Message_Proceed" name="ProceedMessage" />
-	<bpmn2:process id="Process_1" name="Upgrade flow" isExecutable="true">
-		<bpmn2:startEvent id="StartEvent_1" name="Start Process">
-			<bpmn2:outgoing>Flow_1</bpmn2:outgoing>
-		</bpmn2:startEvent>
-		<bpmn2:serviceTask id="ServiceTask_1" name="Device Compatibility Check"
-			flowable:class="DeviceCompatibilityCheck">
-			<bpmn2:incoming>Flow_1</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_1qe9lxk</bpmn2:outgoing>
-		</bpmn2:serviceTask>
-		<bpmn2:serviceTask id="Activity_1n2xol4" name="Schedule and Send Email"
-			flowable:class="Schedule">
-			<bpmn2:incoming>Flow_1qe9lxk</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_1i750vw</bpmn2:outgoing>
-		</bpmn2:serviceTask>
-		<bpmn2:receiveTask id="Activity_19qntoo" name="Re-Scheduling Window"
-			messageRef="Message_Proceed">
-			<bpmn2:incoming>Flow_1i750vw</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_proceed</bpmn2:outgoing>
-		</bpmn2:receiveTask>
-		<bpmn2:boundaryEvent id="Event_0pdxyua" name="Reschedule Request"
-			cancelActivity="false" attachedToRef="Activity_19qntoo">
-			<bpmn2:outgoing>Flow_19itnsk</bpmn2:outgoing>
-			<bpmn2:messageEventDefinition id="MessageEventDefinition_1v7ezlb"
-				messageRef="Message_Reschedule" />
-		</bpmn2:boundaryEvent>
-		<bpmn2:boundaryEvent id="Event_1shs7a9" name="PreUpgradeTimer"
-			attachedToRef="Activity_19qntoo">
-			<bpmn2:outgoing>Flow_0txoykf</bpmn2:outgoing>
-			<bpmn2:timerEventDefinition id="TimerEventDefinition_0oktgsr">
-				<bpmn2:timeDate>${preUpgradeDateTime}</bpmn2:timeDate>
-			</bpmn2:timerEventDefinition>
-		</bpmn2:boundaryEvent>
-		<bpmn2:serviceTask id="Activity_16dpl0s" name="Schedule Modifier"
-			flowable:class="ScheduleModifier">
-			<bpmn2:incoming>Flow_19itnsk</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_modifier_end</bpmn2:outgoing>
-		</bpmn2:serviceTask>
-		<bpmn2:serviceTask id="Activity_1cjfmf7"
-			name="Device Compatibility Check"
-			flowable:class="DeviceCompatibilityCheck">
-			<bpmn2:incoming>Flow_0txoykf</bpmn2:incoming>
-			<bpmn2:incoming>Flow_proceed</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_07zv2lc</bpmn2:outgoing>
-		</bpmn2:serviceTask>
-		<bpmn2:serviceTask id="Activity_14obmje" name="Pre Upgrade Backup"
-			flowable:class="PreUpgradeBackup">
-			<bpmn2:incoming>Flow_07zv2lc</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_to_scheduled_timer</bpmn2:outgoing>
-		</bpmn2:serviceTask>
-		<bpmn2:intermediateCatchEvent id="Event_18e7ds7" name="Scheduled Time">
-			<bpmn2:incoming>Flow_to_scheduled_timer</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_07smcqp</bpmn2:outgoing>
-			<bpmn2:timerEventDefinition id="TimerEventDefinition_1r0d5hu">
-				<bpmn2:timeDate>${scheduledUpgradeDateTime}</bpmn2:timeDate>
-			</bpmn2:timerEventDefinition>
-		</bpmn2:intermediateCatchEvent>
-		<bpmn2:serviceTask id="Activity_01erw02" name="Upgrade Reboot Device"
-			flowable:class="RebootDevice">
-			<bpmn2:incoming>Flow_07smcqp</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_1xzsdz5</bpmn2:outgoing>
-		</bpmn2:serviceTask>
-		<bpmn2:serviceTask id="Activity_030rvyu" name="Management Port"
-			flowable:class="MgmtPort">
-			<bpmn2:incoming>Flow_1xzsdz5</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_170ar3y</bpmn2:outgoing>
-		</bpmn2:serviceTask>
-		<bpmn2:serviceTask id="Activity_0ez1b4u" name="Device Activation"
-			flowable:class="DeviceActivation">
-			<bpmn2:incoming>Flow_170ar3y</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_1ambkp1</bpmn2:outgoing>
-		</bpmn2:serviceTask>
-		<bpmn2:serviceTask id="Activity_1sg1v2u" name="VNF Spin UP"
-			flowable:class="VnfSpinUp">
-			<bpmn2:incoming>Flow_1ambkp1</bpmn2:incoming>
-			<bpmn2:outgoing>Flow_1nlaeh2</bpmn2:outgoing>
-		</bpmn2:serviceTask>
-		<bpmn2:endEvent id="Event_1izn2hj" name="Flow Complete">
-			<bpmn2:incoming>Flow_1nlaeh2</bpmn2:incoming>
-		</bpmn2:endEvent>
-		<bpmn2:sequenceFlow id="Flow_1" sourceRef="StartEvent_1"
-			targetRef="ServiceTask_1" />
-		<bpmn2:sequenceFlow id="Flow_1qe9lxk" sourceRef="ServiceTask_1"
-			targetRef="Activity_1n2xol4" />
-		<bpmn2:sequenceFlow id="Flow_1i750vw" sourceRef="Activity_1n2xol4"
-			targetRef="Activity_19qntoo" />
-		<bpmn2:sequenceFlow id="Flow_19itnsk" sourceRef="Event_0pdxyua"
-			targetRef="Activity_16dpl0s" />
-		<bpmn2:sequenceFlow id="Flow_0txoykf" sourceRef="Event_1shs7a9"
-			targetRef="Activity_1cjfmf7" />
-		<bpmn2:sequenceFlow id="Flow_07zv2lc" sourceRef="Activity_1cjfmf7"
-			targetRef="Activity_14obmje" />
-		<bpmn2:sequenceFlow id="Flow_to_scheduled_timer"
-			sourceRef="Activity_14obmje" targetRef="Event_18e7ds7" />
-		<bpmn2:sequenceFlow id="Flow_07smcqp" sourceRef="Event_18e7ds7"
-			targetRef="Activity_01erw02" />
-		<bpmn2:sequenceFlow id="Flow_1xzsdz5" sourceRef="Activity_01erw02"
-			targetRef="Activity_030rvyu" />
-		<bpmn2:sequenceFlow id="Flow_170ar3y" sourceRef="Activity_030rvyu"
-			targetRef="Activity_0ez1b4u" />
-		<bpmn2:sequenceFlow id="Flow_1ambkp1" sourceRef="Activity_0ez1b4u"
-			targetRef="Activity_1sg1v2u" />
-		<bpmn2:sequenceFlow id="Flow_1nlaeh2" sourceRef="Activity_1sg1v2u"
-			targetRef="Event_1izn2hj" />
-		<bpmn2:sequenceFlow id="Flow_proceed" sourceRef="Activity_19qntoo"
-			targetRef="Activity_1cjfmf7" />
-		<bpmn2:sequenceFlow id="Flow_modifier_end" sourceRef="Activity_16dpl0s"
-			targetRef="Event_1izn2hj" />
-		<bpmn2:textAnnotation id="TextAnnotation_1k0ndmy">
-			<bpmn2:text>Happens Scheduled time -7 Days</bpmn2:text>
-		</bpmn2:textAnnotation>
-		<bpmn2:association id="Association_0otl4s7" associationDirection="None"
-			sourceRef="Event_1shs7a9" targetRef="TextAnnotation_1k0ndmy" />
-		<bpmn2:textAnnotation id="TextAnnotation_0fvqcl6">
-			<bpmn2:text>Timer for Scheduled Time</bpmn2:text>
-		</bpmn2:textAnnotation>
-		<bpmn2:association id="Association_0mo5lj3" associationDirection="None"
-			sourceRef="Event_18e7ds7" targetRef="TextAnnotation_0fvqcl6" />
-		<bpmn2:textAnnotation id="TextAnnotation_reschedule">
-			<bpmn2:text>Non-interrupting: Allows multiple reschedules</bpmn2:text>
-		</bpmn2:textAnnotation>
-		<bpmn2:association id="Association_reschedule"
-			associationDirection="None" sourceRef="Event_0pdxyua"
-			targetRef="TextAnnotation_reschedule" />
-		<bpmn2:textAnnotation id="TextAnnotation_timer_update">
-			<bpmn2:text>Note: ScheduleModifier must manually cancel/re-arm
-				timers via ManagementService to update dates.</bpmn2:text>
-		</bpmn2:textAnnotation>
-		<bpmn2:association id="Association_timer_update"
-			associationDirection="None" sourceRef="Activity_16dpl0s"
-			targetRef="TextAnnotation_timer_update" />
-	</bpmn2:process>
-	<bpmndi:BPMNDiagram id="BPMNDiagram_1">
-		<bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
-			<bpmndi:BPMNShape id="_BPMNShape_StartEvent_2"
-				bpmnElement="StartEvent_1">
-				<dc:Bounds x="179" y="99" width="36" height="36" />
-				<bpmndi:BPMNLabel>
-					<dc:Bounds x="165" y="142" width="64" height="14" />
-				</bpmndi:BPMNLabel>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="ServiceTask_1_di" bpmnElement="ServiceTask_1">
-				<dc:Bounds x="270" y="77" width="100" height="80" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Activity_1n2xol4_di"
-				bpmnElement="Activity_1n2xol4">
-				<dc:Bounds x="430" y="77" width="100" height="80" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Activity_19qntoo_di"
-				bpmnElement="Activity_19qntoo">
-				<dc:Bounds x="590" y="77" width="100" height="80" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Activity_16dpl0s_di"
-				bpmnElement="Activity_16dpl0s">
-				<dc:Bounds x="590" y="220" width="100" height="80" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Activity_1cjfmf7_di"
-				bpmnElement="Activity_1cjfmf7">
-				<dc:Bounds x="750" y="77" width="100" height="80" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Activity_14obmje_di"
-				bpmnElement="Activity_14obmje">
-				<dc:Bounds x="900" y="77" width="100" height="80" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Event_18e7ds7_di" bpmnElement="Event_18e7ds7">
-				<dc:Bounds x="1062" y="99" width="36" height="36" />
-				<bpmndi:BPMNLabel>
-					<dc:Bounds x="1040" y="142" width="80" height="14" />
-				</bpmndi:BPMNLabel>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Activity_01erw02_di"
-				bpmnElement="Activity_01erw02">
-				<dc:Bounds x="1160" y="77" width="100" height="80" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Activity_030rvyu_di"
-				bpmnElement="Activity_030rvyu">
-				<dc:Bounds x="1320" y="77" width="100" height="80" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Activity_0ez1b4u_di"
-				bpmnElement="Activity_0ez1b4u">
-				<dc:Bounds x="1480" y="77" width="100" height="80" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Activity_1sg1v2u_di"
-				bpmnElement="Activity_1sg1v2u">
-				<dc:Bounds x="1640" y="77" width="100" height="80" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Event_1izn2hj_di" bpmnElement="Event_1izn2hj">
-				<dc:Bounds x="1802" y="99" width="36" height="36" />
-				<bpmndi:BPMNLabel>
-					<dc:Bounds x="1784" y="142" width="74" height="14" />
-				</bpmndi:BPMNLabel>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNEdge id="Association_reschedule_di"
-				bpmnElement="Association_reschedule">
-				<di:waypoint x="677" y="161" />
-				<di:waypoint x="760" y="200" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNShape id="Event_0pdxyua_di" bpmnElement="Event_0pdxyua">
-				<dc:Bounds x="642" y="139" width="36" height="36" />
-				<bpmndi:BPMNLabel>
-					<dc:Bounds x="670" y="182" width="59" height="27" />
-				</bpmndi:BPMNLabel>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="TextAnnotation_1k0ndmy_di"
-				bpmnElement="TextAnnotation_1k0ndmy">
-				<dc:Bounds x="540" y="-30" width="100" height="55" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="TextAnnotation_0fvqcl6_di"
-				bpmnElement="TextAnnotation_0fvqcl6">
-				<dc:Bounds x="1100" y="-30" width="100" height="55" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="Event_1shs7a9_di" bpmnElement="Event_1shs7a9">
-				<dc:Bounds x="672" y="59" width="36" height="36" />
-				<bpmndi:BPMNLabel>
-					<dc:Bounds x="705" y="53" width="89" height="14" />
-				</bpmndi:BPMNLabel>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
-				<di:waypoint x="215" y="117" />
-				<di:waypoint x="270" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_1qe9lxk_di" bpmnElement="Flow_1qe9lxk">
-				<di:waypoint x="370" y="117" />
-				<di:waypoint x="430" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_1i750vw_di" bpmnElement="Flow_1i750vw">
-				<di:waypoint x="530" y="117" />
-				<di:waypoint x="590" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_19itnsk_di" bpmnElement="Flow_19itnsk">
-				<di:waypoint x="660" y="175" />
-				<di:waypoint x="660" y="220" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_0txoykf_di" bpmnElement="Flow_0txoykf">
-				<di:waypoint x="690" y="59" />
-				<di:waypoint x="690" y="50" />
-				<di:waypoint x="800" y="50" />
-				<di:waypoint x="800" y="77" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_07zv2lc_di" bpmnElement="Flow_07zv2lc">
-				<di:waypoint x="850" y="117" />
-				<di:waypoint x="900" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_to_scheduled_timer_di"
-				bpmnElement="Flow_to_scheduled_timer">
-				<di:waypoint x="1000" y="117" />
-				<di:waypoint x="1062" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_07smcqp_di" bpmnElement="Flow_07smcqp">
-				<di:waypoint x="1098" y="117" />
-				<di:waypoint x="1160" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_1xzsdz5_di" bpmnElement="Flow_1xzsdz5">
-				<di:waypoint x="1260" y="117" />
-				<di:waypoint x="1320" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_170ar3y_di" bpmnElement="Flow_170ar3y">
-				<di:waypoint x="1420" y="117" />
-				<di:waypoint x="1480" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_1ambkp1_di" bpmnElement="Flow_1ambkp1">
-				<di:waypoint x="1580" y="117" />
-				<di:waypoint x="1640" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_1nlaeh2_di" bpmnElement="Flow_1nlaeh2">
-				<di:waypoint x="1740" y="117" />
-				<di:waypoint x="1802" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Association_0otl4s7_di"
-				bpmnElement="Association_0otl4s7">
-				<di:waypoint x="677" y="65" />
-				<di:waypoint x="633" y="25" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Association_0mo5lj3_di"
-				bpmnElement="Association_0mo5lj3">
-				<di:waypoint x="1087" y="101" />
-				<di:waypoint x="1122" y="25" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNShape id="TextAnnotation_reschedule_di"
-				bpmnElement="TextAnnotation_reschedule">
-				<dc:Bounds x="760" y="180" width="100" height="55" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNEdge id="Flow_proceed_di" bpmnElement="Flow_proceed">
-				<di:waypoint x="690" y="117" />
-				<di:waypoint x="750" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_modifier_end_di"
-				bpmnElement="Flow_modifier_end">
-				<di:waypoint x="690" y="260" />
-				<di:waypoint x="1824" y="260" />
-				<di:waypoint x="1824" y="117" />
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNShape id="TextAnnotation_timer_update_di"
-				bpmnElement="TextAnnotation_timer_update">
-				<dc:Bounds x="760" y="300" width="200" height="55" />
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNEdge id="Association_timer_update_di"
-				bpmnElement="Association_timer_update">
-				<di:waypoint x="640" y="260" />
-				<di:waypoint x="850" y="300" />
-			</bpmndi:BPMNEdge>
-		</bpmndi:BPMNPlane>
-	</bpmndi:BPMNDiagram>
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:flowable="http://flowable.org/bpmn" id="sample-diagram" targetNamespace="http://bpmn.io/schema/bpmn" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
+  <bpmn2:message id="Message_Reschedule" name="RescheduleMessage" />
+  <bpmn2:process id="Process_1" name="Upgrade flow" isExecutable="true">
+    <bpmn2:startEvent id="StartEvent_1" name="Start Process">
+      <bpmn2:outgoing>Flow_1</bpmn2:outgoing>
+    </bpmn2:startEvent>
+    <bpmn2:serviceTask id="ServiceTask_1" name="Device Compatibility Check" flowable:class="DeviceCompatibilityCheck">
+      <bpmn2:extensionElements>
+        <flowable:inputOutput />
+      </bpmn2:extensionElements>
+      <bpmn2:incoming>Flow_1</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_1qe9lxk</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:serviceTask id="Activity_1n2xol4" name="Schedule and Send Email" flowable:class="Schedule">
+      <bpmn2:incoming>Flow_17vd298</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_1i750vw</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:receiveTask id="Activity_19qntoo" name="Re-Scheduling Window" messageRef="Message_Reschedule">
+      <bpmn2:incoming>Flow_1i750vw</bpmn2:incoming>
+      <bpmn2:incoming>Flow_1wgr47l</bpmn2:incoming>
+      <bpmn2:incoming>Flow_1yq6emr</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_1gq6ek1</bpmn2:outgoing>
+    </bpmn2:receiveTask>
+    <bpmn2:boundaryEvent id="Event_1shs7a9" name="PreUpgradeTimer" attachedToRef="Activity_19qntoo">
+      <bpmn2:outgoing>Flow_0txoykf</bpmn2:outgoing>
+      <bpmn2:timerEventDefinition id="TimerEventDefinition_0oktgsr">
+        <bpmn2:timeDate>${preUpgradeDateTime}</bpmn2:timeDate>
+      </bpmn2:timerEventDefinition>
+    </bpmn2:boundaryEvent>
+    <bpmn2:serviceTask id="Activity_16dpl0s" name="Schedule Modifier" flowable:class="ScheduleModifier">
+      <bpmn2:incoming>Flow_1gq6ek1</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_1wgr47l</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:serviceTask id="Activity_1cjfmf7" name="Device Compatibility Check" flowable:class="DeviceCompatibilityCheck">
+      <bpmn2:incoming>Flow_0txoykf</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_07zv2lc</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:serviceTask id="Activity_14obmje" name="Pre Upgrade Backup" flowable:class="PreUpgradeBackup">
+      <bpmn2:incoming>Flow_07zv2lc</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_to_scheduled_timer</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:intermediateCatchEvent id="Event_18e7ds7" name="Scheduled Time">
+      <bpmn2:incoming>Flow_to_scheduled_timer</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_07smcqp</bpmn2:outgoing>
+      <bpmn2:timerEventDefinition id="TimerEventDefinition_1r0d5hu">
+        <bpmn2:timeDate>${scheduledUpgradeDateTime}</bpmn2:timeDate>
+      </bpmn2:timerEventDefinition>
+    </bpmn2:intermediateCatchEvent>
+    <bpmn2:serviceTask id="Activity_01erw02" name="Upgrade Reboot Device" flowable:class="RebootDevice">
+      <bpmn2:incoming>Flow_07smcqp</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_1xzsdz5</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:serviceTask id="Activity_030rvyu" name="Management Port" flowable:class="MgmtPort">
+      <bpmn2:incoming>Flow_1xzsdz5</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_170ar3y</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:serviceTask id="Activity_0ez1b4u" name="Device Activation" flowable:class="DeviceActivation">
+      <bpmn2:incoming>Flow_170ar3y</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_1ambkp1</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:serviceTask id="Activity_1sg1v2u" name="VNF Spin UP" flowable:class="VnfSpinUp">
+      <bpmn2:incoming>Flow_1ambkp1</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_1nlaeh2</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:endEvent id="Event_1izn2hj" name="Flow Complete">
+      <bpmn2:incoming>Flow_1nlaeh2</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="ServiceTask_1" />
+    <bpmn2:sequenceFlow id="Flow_1qe9lxk" sourceRef="ServiceTask_1" targetRef="Gateway_16t1m08" />
+    <bpmn2:sequenceFlow id="Flow_1i750vw" sourceRef="Activity_1n2xol4" targetRef="Activity_19qntoo" />
+    <bpmn2:sequenceFlow id="Flow_0txoykf" sourceRef="Event_1shs7a9" targetRef="Activity_1cjfmf7" />
+    <bpmn2:sequenceFlow id="Flow_07zv2lc" sourceRef="Activity_1cjfmf7" targetRef="Activity_14obmje" />
+    <bpmn2:sequenceFlow id="Flow_to_scheduled_timer" sourceRef="Activity_14obmje" targetRef="Event_18e7ds7" />
+    <bpmn2:sequenceFlow id="Flow_07smcqp" sourceRef="Event_18e7ds7" targetRef="Activity_01erw02" />
+    <bpmn2:sequenceFlow id="Flow_1xzsdz5" sourceRef="Activity_01erw02" targetRef="Activity_030rvyu" />
+    <bpmn2:sequenceFlow id="Flow_170ar3y" sourceRef="Activity_030rvyu" targetRef="Activity_0ez1b4u" />
+    <bpmn2:sequenceFlow id="Flow_1ambkp1" sourceRef="Activity_0ez1b4u" targetRef="Activity_1sg1v2u" />
+    <bpmn2:sequenceFlow id="Flow_1nlaeh2" sourceRef="Activity_1sg1v2u" targetRef="Event_1izn2hj" />
+    <bpmn2:sequenceFlow id="Flow_1wgr47l" sourceRef="Activity_16dpl0s" targetRef="Activity_19qntoo" />
+    <bpmn2:exclusiveGateway id="Gateway_16t1m08">
+      <bpmn2:incoming>Flow_1qe9lxk</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_17vd298</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_195h0yc</bpmn2:outgoing>
+    </bpmn2:exclusiveGateway>
+    <bpmn2:sequenceFlow id="Flow_17vd298" sourceRef="Gateway_16t1m08" targetRef="Activity_1n2xol4">
+      <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${scheduledUpgradeDateTime != null &amp;amp;&amp;amp; scheduledUpgradeDateTime.isAfter(java.time.ZonedDateTime.now())}</bpmn2:conditionExpression>
+    </bpmn2:sequenceFlow>
+    <bpmn2:sequenceFlow id="Flow_195h0yc" sourceRef="Gateway_16t1m08" targetRef="Activity_0jbgw0q" />
+    <bpmn2:sequenceFlow id="Flow_1yq6emr" sourceRef="Activity_0jbgw0q" targetRef="Activity_19qntoo" />
+    <bpmn2:serviceTask id="Activity_0jbgw0q" name="AutoSchedule and Send Email">
+      <bpmn2:incoming>Flow_195h0yc</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_1yq6emr</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:sequenceFlow id="Flow_1gq6ek1" sourceRef="Activity_19qntoo" targetRef="Activity_16dpl0s" />
+    <bpmn2:textAnnotation id="TextAnnotation_1k0ndmy">
+      <bpmn2:text>Happens Scheduled time -7 Days</bpmn2:text>
+    </bpmn2:textAnnotation>
+    <bpmn2:association id="Association_0otl4s7" associationDirection="None" sourceRef="Event_1shs7a9" targetRef="TextAnnotation_1k0ndmy" />
+    <bpmn2:textAnnotation id="TextAnnotation_0fvqcl6">
+      <bpmn2:text>Timer for Scheduled Time</bpmn2:text>
+    </bpmn2:textAnnotation>
+    <bpmn2:association id="Association_0mo5lj3" associationDirection="None" sourceRef="Event_18e7ds7" targetRef="TextAnnotation_0fvqcl6" />
+  </bpmn2:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Activity_19qntoo_di" bpmnElement="Activity_19qntoo">
+        <dc:Bounds x="590" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_16dpl0s_di" bpmnElement="Activity_16dpl0s">
+        <dc:Bounds x="590" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1cjfmf7_di" bpmnElement="Activity_1cjfmf7">
+        <dc:Bounds x="750" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_14obmje_di" bpmnElement="Activity_14obmje">
+        <dc:Bounds x="900" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_18e7ds7_di" bpmnElement="Event_18e7ds7">
+        <dc:Bounds x="1062" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1040" y="142" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_01erw02_di" bpmnElement="Activity_01erw02">
+        <dc:Bounds x="1160" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_030rvyu_di" bpmnElement="Activity_030rvyu">
+        <dc:Bounds x="1320" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ez1b4u_di" bpmnElement="Activity_0ez1b4u">
+        <dc:Bounds x="1480" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1sg1v2u_di" bpmnElement="Activity_1sg1v2u">
+        <dc:Bounds x="1640" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1izn2hj_di" bpmnElement="Event_1izn2hj">
+        <dc:Bounds x="1802" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1784" y="142" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="72" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="57" y="142" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_1_di" bpmnElement="ServiceTask_1">
+        <dc:Bounds x="160" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_16t1m08_di" bpmnElement="Gateway_16t1m08" isMarkerVisible="true">
+        <dc:Bounds x="295" y="92" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1n2xol4_di" bpmnElement="Activity_1n2xol4">
+        <dc:Bounds x="390" y="20" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0gaprlc_di" bpmnElement="Activity_0jbgw0q">
+        <dc:Bounds x="390" y="165" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1k0ndmy_di" bpmnElement="TextAnnotation_1k0ndmy">
+        <dc:Bounds x="540" y="-30" width="100" height="55" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_0fvqcl6_di" bpmnElement="TextAnnotation_0fvqcl6">
+        <dc:Bounds x="1100" y="-30" width="100" height="55" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1shs7a9_di" bpmnElement="Event_1shs7a9">
+        <dc:Bounds x="672" y="59" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="705" y="53" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="108" y="117" />
+        <di:waypoint x="160" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1qe9lxk_di" bpmnElement="Flow_1qe9lxk">
+        <di:waypoint x="260" y="117" />
+        <di:waypoint x="295" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1i750vw_di" bpmnElement="Flow_1i750vw">
+        <di:waypoint x="490" y="60" />
+        <di:waypoint x="640" y="60" />
+        <di:waypoint x="640" y="77" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0txoykf_di" bpmnElement="Flow_0txoykf">
+        <di:waypoint x="690" y="59" />
+        <di:waypoint x="690" y="50" />
+        <di:waypoint x="800" y="50" />
+        <di:waypoint x="800" y="77" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07zv2lc_di" bpmnElement="Flow_07zv2lc">
+        <di:waypoint x="850" y="117" />
+        <di:waypoint x="900" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_to_scheduled_timer_di" bpmnElement="Flow_to_scheduled_timer">
+        <di:waypoint x="1000" y="117" />
+        <di:waypoint x="1062" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07smcqp_di" bpmnElement="Flow_07smcqp">
+        <di:waypoint x="1098" y="117" />
+        <di:waypoint x="1160" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1xzsdz5_di" bpmnElement="Flow_1xzsdz5">
+        <di:waypoint x="1260" y="117" />
+        <di:waypoint x="1320" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_170ar3y_di" bpmnElement="Flow_170ar3y">
+        <di:waypoint x="1420" y="117" />
+        <di:waypoint x="1480" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ambkp1_di" bpmnElement="Flow_1ambkp1">
+        <di:waypoint x="1580" y="117" />
+        <di:waypoint x="1640" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1nlaeh2_di" bpmnElement="Flow_1nlaeh2">
+        <di:waypoint x="1740" y="117" />
+        <di:waypoint x="1802" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0otl4s7_di" bpmnElement="Association_0otl4s7">
+        <di:waypoint x="677" y="65" />
+        <di:waypoint x="633" y="25" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0mo5lj3_di" bpmnElement="Association_0mo5lj3">
+        <di:waypoint x="1087" y="101" />
+        <di:waypoint x="1122" y="25" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1wgr47l_di" bpmnElement="Flow_1wgr47l">
+        <di:waypoint x="620" y="220" />
+        <di:waypoint x="620" y="157" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17vd298_di" bpmnElement="Flow_17vd298">
+        <di:waypoint x="320" y="92" />
+        <di:waypoint x="320" y="60" />
+        <di:waypoint x="390" y="60" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_195h0yc_di" bpmnElement="Flow_195h0yc">
+        <di:waypoint x="320" y="142" />
+        <di:waypoint x="320" y="205" />
+        <di:waypoint x="390" y="205" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1yq6emr_di" bpmnElement="Flow_1yq6emr">
+        <di:waypoint x="490" y="205" />
+        <di:waypoint x="540" y="205" />
+        <di:waypoint x="540" y="147" />
+        <di:waypoint x="590" y="147" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1gq6ek1_di" bpmnElement="Flow_1gq6ek1">
+        <di:waypoint x="660" y="157" />
+        <di:waypoint x="660" y="220" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
 </bpmn2:definitions>
