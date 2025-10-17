@@ -60,11 +60,11 @@ public class PreUpgradeBackupDelegate implements JavaDelegate {
             ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
             if (resp.getStatusCode().is2xxSuccessful()) {
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "pre-upgrade-backup", "SUCCESS",
-                        "Pre-upgrade backup API responded with status " + resp.getStatusCodeValue());
+                        "Pre-upgrade backup API responded with status " + resp.getStatusCode().value());
             } else {
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "pre-upgrade-backup", "FAILED",
-                        "Pre-upgrade backup API responded with non-2xx status " + resp.getStatusCodeValue());
-                throw new RuntimeException("PreUpgradeBackupDelegate failed with status " + resp.getStatusCodeValue());
+                        "Pre-upgrade backup API responded with non-2xx status " + resp.getStatusCode().value());
+                throw new RuntimeException("PreUpgradeBackupDelegate failed with status " + resp.getStatusCode().value());
             }
         } catch (Exception ex) {
             elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "pre-upgrade-backup", "FAILED",

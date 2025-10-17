@@ -60,11 +60,11 @@ public class CheckDeviceCompatibilityDelegate implements JavaDelegate {
             ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
             if (resp.getStatusCode().is2xxSuccessful()) {
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "check-device-compatibility", "SUCCESS",
-                        "Device compatibility check API responded with status " + resp.getStatusCodeValue());
+                        "Device compatibility check API responded with status " + resp.getStatusCode().value());
             } else {
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "check-device-compatibility", "FAILED",
-                        "Device compatibility check API responded with non-2xx status " + resp.getStatusCodeValue());
-                throw new RuntimeException("CheckDeviceCompatibilityDelegate failed with status " + resp.getStatusCodeValue());
+                        "Device compatibility check API responded with non-2xx status " + resp.getStatusCode().value());
+                throw new RuntimeException("CheckDeviceCompatibilityDelegate failed with status " + resp.getStatusCode().value());
             }
         } catch (Exception ex) {
             elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "check-device-compatibility", "FAILED",

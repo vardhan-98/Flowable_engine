@@ -115,11 +115,4 @@ public class EmailService {
         }
     }
 
-    // TODO: Add method to send workflow notification emails
-    // TODO: Add method to send escalation emails
-    // TODO: Add method to queue emails for later sending
-    // TODO: Add email template processing
-    // TODO: Add email delivery status tracking
-    // TODO: Add configuration for SMTP settings
-
 }
