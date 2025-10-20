@@ -15,7 +15,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, String> {
 
     @Query("SELECT e FROM Employee e " +
            "LEFT JOIN FETCH e.leaves l " +
-           "LEFT JOIN FETCH e.tasks t " +
+           "LEFT JOIN e.tasks t " +
            "LEFT JOIN FETCH e.shift s " +
            "WHERE :skill MEMBER OF e.skills " +
            "AND e.isActive = TRUE " +

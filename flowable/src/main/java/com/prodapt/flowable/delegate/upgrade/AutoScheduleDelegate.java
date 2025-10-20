@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import com.prodapt.flowable.entity.WorkflowExecution;
 import com.prodapt.flowable.repository.WorkflowExecutionRepository;
 import com.prodapt.flowable.service.ElasticsearchService;
+import com.prodapt.flowable.service.EmailService;
 import com.prodapt.flowable.service.scheduler.SchedulingService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,9 @@ public class AutoScheduleDelegate implements JavaDelegate {
 
     @Autowired
     private final ElasticsearchService elasticsearchService;
+
+    @Autowired
+    private final EmailService emailService;
 
     @Autowired
     private final SchedulingService schedulingService;
@@ -47,7 +51,7 @@ public class AutoScheduleDelegate implements JavaDelegate {
             ZonedDateTime start = now.plusDays(30);
             ZonedDateTime end = start.plusDays(60); // Search for 60 days to find available slots
 
-            String skill = "upgrade"; // Assuming skill is "upgrade" for device upgrades
+            String skill = "Upgrade"; // Match the skill case from employee data
 
             List<ZonedDateTime> availableSlots = schedulingService.getAvailableSlots(start, end, skill);
 
@@ -57,14 +61,21 @@ public class AutoScheduleDelegate implements JavaDelegate {
                 schedulingService.assignWorkflowToEmployee(workflowExec, firstSlot, skill);
 
                 // Set execution variables for workflow timers
-                execution.setVariable("scheduledUpgradeDateTime", firstSlot);
+                execution.setVariable("scheduledUpgradeDateTime", firstSlot.toInstant());
                 ZonedDateTime preUpgradeTime = firstSlot.minusDays(7);
-                execution.setVariable("preUpgradeDateTime", preUpgradeTime);
+                execution.setVariable("preUpgradeDateTime", preUpgradeTime.toInstant());
 
                 workflowExecutionRepository.save(workflowExec);
 
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "autoschedule", "COMPLETED",
                         "Auto-scheduled at: " + firstSlot);
+
+                elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "autoschedule", "INFO",
+                        "Flow entering reschedule window until pre-upgrade time: " + preUpgradeTime);
+
+                // Send upgrade email to customer
+                emailService.sendUpgradeEmail(workflowExec.getLocalCustomerEmailContact(), deviceId, firstSlot.toString(), preUpgradeTime.toString(), flowId);
+
                 log.info("Workflow {} auto-scheduled at: {}", flowId, firstSlot);
             } else {
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "autoschedule", "FAILED",

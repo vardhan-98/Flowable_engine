@@ -2,8 +2,10 @@ package com.prodapt.flowable.service;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.stereotype.Service;
 
 import com.prodapt.flowable.entity.LogEntry;
@@ -18,6 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class ElasticsearchService {
+
+    @Autowired
+    private final ElasticsearchOperations elasticsearchOperations;
 
     @Autowired
     private final LogEntryRepository logEntryRepository;
@@ -36,6 +41,7 @@ public class ElasticsearchService {
     public void logEventWithLogger(String flowId, String deviceId, String stage, String step, String status, String message, String logger) {
         try {
             LogEntry logEntry = new LogEntry();
+            logEntry.setId(UUID.randomUUID().toString());
             logEntry.setFlowInstanceId(flowId);
             logEntry.setDeviceId(deviceId);
             logEntry.setStage(stage);
@@ -43,15 +49,17 @@ public class ElasticsearchService {
             logEntry.setStatus(status);
             logEntry.setMessage(message);
             logEntry.setLogger(logger);
-            logEntry.setTimestamp(Instant.now().toEpochMilli());
+            logEntry.setTimestamp(System.currentTimeMillis());
 
-            logEntryRepository.save(logEntry);
+            // Index to Elasticsearch
+            elasticsearchOperations.save(logEntry);
+
             log.info("Logged event: {} - {} - {} - {}", flowId, deviceId, step, status);
 
             // Update WorkflowExecution entity based on the current step logging
             updateWorkflowExecution(flowId, deviceId, step, status, message);
         } catch (Exception e) {
-            log.error("Failed to log event to Elasticsearch", e);
+            System.out.println("ES error");
         }
     }
 

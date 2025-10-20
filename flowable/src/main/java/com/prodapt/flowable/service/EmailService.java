@@ -31,7 +31,7 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    public void sendUpgradeEmail(String to, String deviceId, String scheduledTime) {
+    public void sendUpgradeEmail(String to, String deviceId, String scheduledTime, String rescheduleUntil, String flowId) {
         try {
             String from = (fromEmail != null && !fromEmail.isBlank())
                 ? fromEmail
@@ -39,6 +39,8 @@ public class EmailService {
             ZonedDateTime zonedDateTime = ZonedDateTime.parse(scheduledTime);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a z");
             String userReadable = zonedDateTime.format(formatter);
+            ZonedDateTime rescheduleDateTime = ZonedDateTime.parse(rescheduleUntil);
+            String rescheduleReadable = rescheduleDateTime.format(formatter);
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
             helper.setFrom(from);
@@ -65,10 +67,10 @@ public class EmailService {
 	    "      <img src=\"data:image/png;base64," + headerBase64 + "\" alt=\"Nucleus | AT&T FlexWare\" style=\"max-width:100%; height:auto;\" />" +
 	    "    </div>" +
     "    <div class='content'>" +
-    "      <p>Dear Harshvardhan R,</p>" +
+    "      <p>Dear Customer,</p>" +
     "      <p>Your device upgrade has been scheduled with the following details:</p>" +
     "      <ul>" +
-    "        <li><strong>Hostname:</strong> AUEISABNEAU0102UJZZXX</li>" +
+    "        <li><strong>Hostname:</strong> " + deviceId + "</li>" +
     "        <li><strong>Model ID:</strong> nfx250_att_ls1_10_t</li>" +
     "        <li><strong>JunOS Version:</strong> 15.1X53-D470.5</li>" +
     "        <li><strong>Scheduled Time:</strong> " + userReadable + "</li>" +
@@ -84,8 +86,9 @@ public class EmailService {
     "      <h3>If You Need to Reschedule</h3>" +
     "      <p>If the scheduled time does not work for you, you can reschedule the upgrade using the button below.</p>" +
     "      <div class='button-container'>" +
-    "        <a href='" + "http://192.168.5.52:8080" + "/schedule/" + deviceId + "' class='button'>Reschedule Your Upgrade</a>" +
+    "        <a href='" + "http://192.168.5.52:8080/api/devices/reschedule/" + flowId + "' class='button'>Reschedule Your Upgrade</a>" +
     "      </div>" +
+    "      <p>Please note that you can reschedule until " + rescheduleReadable + ". After this time, rescheduling will no longer be available.</p>" +
     "      <p>Thank you for trusting AT&T to power your network.</p>" +
     "      <p>Best regards,</p>" +
     "      <p>Flexware Support Team</p>" +
@@ -100,9 +103,9 @@ public class EmailService {
 
             helper.setText(htmlContent, true);
             mailSender.send(message);
-            elasticsearchService.logEvent(null, deviceId, "DeviceUpgrade", "send-email", "SUCCESS", "Upgrade email sent from " + from + " to " + to + " via host " + mailHost + " for device " + deviceId);
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "send-email", "SUCCESS", "Upgrade email sent from " + from + " to " + to + " via host " + mailHost + " for device " + deviceId);
         } catch (Exception ex) {
-            elasticsearchService.logEvent(null, deviceId, "DeviceUpgrade", "send-email", "FAILED", "Failed to send upgrade email to " + to + ": " + ex.getMessage());
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "send-email", "FAILED", "Failed to send upgrade email to " + to + ": " + ex.getMessage());
         }
     }
 

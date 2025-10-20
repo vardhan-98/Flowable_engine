@@ -10,6 +10,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.ElementCollection;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,7 @@ public class Employee {
 	//this should be attUid+@att.com
 	String email;
 	String role;
+	@ElementCollection
 	List<String> skills;
 	@OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
 	@JsonIgnore

@@ -5,14 +5,14 @@
     <bpmn2:startEvent id="StartEvent_1" name="Start Process">
       <bpmn2:outgoing>Flow_1</bpmn2:outgoing>
     </bpmn2:startEvent>
-    <bpmn2:serviceTask id="ServiceTask_1" name="Device Compatibility Check" flowable:class="DeviceCompatibilityCheck">
+    <bpmn2:serviceTask id="ServiceTask_1" name="Device Compatibility Check" flowable:delegateExpression="${DeviceCompatibilityCheck}" flowable:async="true" flowable:exclusive="true" >
       <bpmn2:extensionElements>
         <flowable:inputOutput />
       </bpmn2:extensionElements>
       <bpmn2:incoming>Flow_1</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1qe9lxk</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_1n2xol4" name="Schedule and Send Email" flowable:class="Schedule">
+    <bpmn2:serviceTask id="Activity_1n2xol4" name="Schedule and Send Email" flowable:delegateExpression="${Schedule}" flowable:async="true" flowable:exclusive="true" >
       <bpmn2:incoming>Flow_17vd298</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1i750vw</bpmn2:outgoing>
     </bpmn2:serviceTask>
@@ -28,15 +28,15 @@
         <bpmn2:timeDate>${preUpgradeDateTime}</bpmn2:timeDate>
       </bpmn2:timerEventDefinition>
     </bpmn2:boundaryEvent>
-    <bpmn2:serviceTask id="Activity_16dpl0s" name="Schedule Modifier" flowable:class="ScheduleModifier">
+    <bpmn2:serviceTask id="Activity_16dpl0s" name="Schedule Modifier" flowable:delegateExpression="${ScheduleModifier}" flowable:async="true" flowable:exclusive="true" >
       <bpmn2:incoming>Flow_1gq6ek1</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1wgr47l</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_1cjfmf7" name="Device Compatibility Check" flowable:class="DeviceCompatibilityCheck">
+    <bpmn2:serviceTask id="Activity_1cjfmf7" name="Device Compatibility Check" flowable:delegateExpression="${DeviceCompatibilityCheck}" flowable:async="true" flowable:exclusive="true" >
       <bpmn2:incoming>Flow_0txoykf</bpmn2:incoming>
       <bpmn2:outgoing>Flow_07zv2lc</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_14obmje" name="Pre Upgrade Backup" flowable:class="PreUpgradeBackup">
+    <bpmn2:serviceTask id="Activity_14obmje" name="Pre Upgrade Backup" flowable:delegateExpression="${PreUpgradeBackup}" flowable:async="true" flowable:exclusive="true" >
       <bpmn2:incoming>Flow_07zv2lc</bpmn2:incoming>
       <bpmn2:outgoing>Flow_to_scheduled_timer</bpmn2:outgoing>
     </bpmn2:serviceTask>
@@ -47,19 +47,19 @@
         <bpmn2:timeDate>${scheduledUpgradeDateTime}</bpmn2:timeDate>
       </bpmn2:timerEventDefinition>
     </bpmn2:intermediateCatchEvent>
-    <bpmn2:serviceTask id="Activity_01erw02" name="Upgrade Reboot Device" flowable:class="RebootDevice">
+    <bpmn2:serviceTask id="Activity_01erw02" name="Upgrade Reboot Device" flowable:delegateExpression="${RebootDevice}" flowable:async="true" flowable:exclusive="true" >
       <bpmn2:incoming>Flow_07smcqp</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1xzsdz5</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_030rvyu" name="Management Port" flowable:class="MgmtPort">
+    <bpmn2:serviceTask id="Activity_030rvyu" name="Management Port" flowable:delegateExpression="${MgmtPort}" flowable:async="true" flowable:exclusive="true" >
       <bpmn2:incoming>Flow_1xzsdz5</bpmn2:incoming>
       <bpmn2:outgoing>Flow_170ar3y</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_0ez1b4u" name="Device Activation" flowable:class="DeviceActivation">
+    <bpmn2:serviceTask id="Activity_0ez1b4u" name="Device Activation" flowable:delegateExpression="${DeviceActivation}" flowable:async="true" flowable:exclusive="true" >
       <bpmn2:incoming>Flow_170ar3y</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1ambkp1</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_1sg1v2u" name="VNF Spin UP" flowable:class="VnfSpinUp">
+    <bpmn2:serviceTask id="Activity_1sg1v2u" name="VNF Spin UP" flowable:delegateExpression="${VnfSpinUp}" flowable:async="true" flowable:exclusive="true" >
       <bpmn2:incoming>Flow_1ambkp1</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1nlaeh2</bpmn2:outgoing>
     </bpmn2:serviceTask>
@@ -83,12 +83,12 @@
       <bpmn2:outgoing>Flow_17vd298</bpmn2:outgoing>
       <bpmn2:outgoing>Flow_195h0yc</bpmn2:outgoing>
     </bpmn2:exclusiveGateway>
-    <bpmn2:sequenceFlow id="Flow_17vd298" sourceRef="Gateway_16t1m08" targetRef="Activity_1n2xol4">
-      <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${scheduledUpgradeDateTime != null &amp;amp;&amp;amp; scheduledUpgradeDateTime.isAfter(java.time.ZonedDateTime.now())}</bpmn2:conditionExpression>
-    </bpmn2:sequenceFlow>
+<bpmn2:sequenceFlow id="Flow_17vd298" sourceRef="Gateway_16t1m08" targetRef="Activity_1n2xol4">
+  <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${execution.getVariable('scheduledUpgradeDateTime') != null}</bpmn2:conditionExpression>
+</bpmn2:sequenceFlow>
     <bpmn2:sequenceFlow id="Flow_195h0yc" sourceRef="Gateway_16t1m08" targetRef="Activity_0jbgw0q" />
     <bpmn2:sequenceFlow id="Flow_1yq6emr" sourceRef="Activity_0jbgw0q" targetRef="Activity_19qntoo" />
-    <bpmn2:serviceTask id="Activity_0jbgw0q" name="AutoSchedule and Send Email">
+    <bpmn2:serviceTask id="Activity_0jbgw0q" name="AutoSchedule and Send Email" flowable:delegateExpression="${AutoSchedule}" flowable:async="true" flowable:exclusive="true" >
       <bpmn2:incoming>Flow_195h0yc</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1yq6emr</bpmn2:outgoing>
     </bpmn2:serviceTask>

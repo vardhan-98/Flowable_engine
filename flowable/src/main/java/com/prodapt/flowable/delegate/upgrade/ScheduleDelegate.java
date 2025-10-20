@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import com.prodapt.flowable.entity.WorkflowExecution;
 import com.prodapt.flowable.repository.WorkflowExecutionRepository;
 import com.prodapt.flowable.service.ElasticsearchService;
+import com.prodapt.flowable.service.EmailService;
 import com.prodapt.flowable.service.scheduler.SchedulingService;
 
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,9 @@ public class ScheduleDelegate implements JavaDelegate {
 
     @Autowired
     private final ElasticsearchService elasticsearchService;
+
+    @Autowired
+    private final EmailService emailService;
 
     @Autowired
     private final SchedulingService schedulingService;
@@ -53,14 +57,21 @@ public class ScheduleDelegate implements JavaDelegate {
                 schedulingService.assignWorkflowToEmployee(workflowExec, scheduledTime, skill);
 
                 // Set execution variables for workflow timers
-                execution.setVariable("scheduledUpgradeDateTime", scheduledTime);
+                execution.setVariable("scheduledUpgradeDateTime", scheduledTime.toInstant());
                 ZonedDateTime preUpgradeTime = scheduledTime.minusDays(7);
-                execution.setVariable("preUpgradeDateTime", preUpgradeTime);
+                execution.setVariable("preUpgradeDateTime", preUpgradeTime.toInstant());
 
                 workflowExecutionRepository.save(workflowExec);
 
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "schedule", "COMPLETED",
                         "Scheduled at: " + scheduledTime);
+
+                elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "schedule", "INFO",
+                        "Flow entering reschedule window until pre-upgrade time: " + preUpgradeTime);
+
+                // Send upgrade email to customer
+                emailService.sendUpgradeEmail(workflowExec.getLocalCustomerEmailContact(), deviceId, scheduledTime.toString(), preUpgradeTime.toString(), flowId);
+
                 log.info("Workflow {} scheduled at: {}", flowId, scheduledTime);
             } else {
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "schedule", "FAILED",

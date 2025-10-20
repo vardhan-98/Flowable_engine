@@ -35,6 +35,7 @@ public class CheckDeviceCompatibilityDelegate implements JavaDelegate {
 
     @Override
     public void execute(DelegateExecution execution) {
+        log.info("Executing device compatibility check...");
         String deviceId = (String) execution.getVariable("deviceId");
         String flowId = execution.getProcessInstanceId();
 

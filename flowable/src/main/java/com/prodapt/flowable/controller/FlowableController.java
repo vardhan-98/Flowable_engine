@@ -23,8 +23,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import org.springframework.validation.annotation.Validated;
 
 @RestController
+@Validated
 public class FlowableController {
 
     @Autowired
@@ -81,6 +83,15 @@ public class FlowableController {
 
                 // Start process instance
                 ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("Process_1", variables);
+
+                // Create WorkflowExecution record
+                WorkflowExecution workflowExecution = new WorkflowExecution();
+                workflowExecution.setFlowInstanceId(processInstance.getId());
+                workflowExecution.setDeviceId(device.getDeviceId());
+                workflowExecution.setWorkflow("DeviceUpgrade");
+                workflowExecution.setLocalCustomerEmailContact(device.getCustomerEmail());
+                workflowExecutionRepository.save(workflowExecution);
+
                 startedProcesses.add(device.getDeviceId() + ": " + processInstance.getId());
 
             } catch (Exception e) {

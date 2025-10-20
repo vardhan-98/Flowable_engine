@@ -38,7 +38,7 @@ public class VnfSpinUpDelegate implements JavaDelegate {
         String deviceId = (String) execution.getVariable("deviceId");
         String flowId = execution.getProcessInstanceId();
 
-        String url = baseUrl + "/vnf_spinup";
+        String url = baseUrl + "/vnf_spinup_and_config";
 
         try {
             elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "vnf-spinup", "STARTED",
