@@ -1,6 +1,5 @@
 package com.prodapt.flowable.service;
 
-import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import com.prodapt.flowable.entity.LogEntry;
 import com.prodapt.flowable.entity.WorkflowExecution;
-import com.prodapt.flowable.repository.LogEntryRepository;
 import com.prodapt.flowable.repository.WorkflowExecutionRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -23,9 +21,6 @@ public class ElasticsearchService {
 
     @Autowired
     private final ElasticsearchOperations elasticsearchOperations;
-
-    @Autowired
-    private final LogEntryRepository logEntryRepository;
 
     @Autowired
     private final WorkflowExecutionRepository workflowExecutionRepository;

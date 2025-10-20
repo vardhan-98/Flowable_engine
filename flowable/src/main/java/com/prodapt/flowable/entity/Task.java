@@ -3,6 +3,8 @@ package com.prodapt.flowable.entity;
 import java.time.ZonedDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
@@ -29,6 +31,7 @@ public class Task {
 	@JoinColumn(name = "assigned_user_id")
 	Employee assignedEmployee;
 	@OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
+	@JsonManagedReference
 	List<WorkflowExecution> workflows;
 	Integer workflowCount;
 }

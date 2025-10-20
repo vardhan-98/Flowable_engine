@@ -2,6 +2,8 @@ package com.prodapt.flowable.entity;
 
 import java.time.ZonedDateTime;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
@@ -34,8 +36,11 @@ public class WorkflowExecution {
 	String localCustomerEmailContact;
 	String localCustomerMobileContact;
 	String issuer;
+	String processName;
+	String processFlowId;
 	@ManyToOne
 	@JoinColumn(name = "task_id")
+	@JsonBackReference
 	Task task;
 
 	boolean completed = false;

@@ -25,27 +25,25 @@ public class DataLoader implements CommandLineRunner {
     public void run(String... args) throws Exception {
         if (shiftRepository.count() == 0 && employeeRepository.count() == 0) {
             // Create sample shifts first
+            Shift midnightShift = new Shift();
+            midnightShift.setCode("MIDNIGHT");
+            midnightShift.setStartTime(LocalTime.of(0, 0));
+            midnightShift.setEndTime(LocalTime.of(9, 0));
+            midnightShift.setDuration(9);
+
             Shift morningShift = new Shift();
             morningShift.setCode("MORNING");
-            morningShift.setStartTime(LocalTime.of(9, 0));
+            morningShift.setStartTime(LocalTime.of(8, 0));
             morningShift.setEndTime(LocalTime.of(17, 0));
-            morningShift.setDuration(8);
+            morningShift.setDuration(9);
 
-            Shift earlyShift = new Shift();
-            earlyShift.setCode("EARLY");
-            earlyShift.setStartTime(LocalTime.of(7, 0));
-            earlyShift.setEndTime(LocalTime.of(15, 0));
-            earlyShift.setDuration(8);
+            Shift eveningShift = new Shift();
+            eveningShift.setCode("EVENING");
+            eveningShift.setStartTime(LocalTime.of(16, 0));
+            eveningShift.setEndTime(LocalTime.of(1, 0));
+            eveningShift.setDuration(9);
 
-            Shift lateShift = new Shift();
-            lateShift.setCode("LATE");
-            lateShift.setStartTime(LocalTime.of(11, 0));
-            lateShift.setEndTime(LocalTime.of(19, 0));
-            lateShift.setDuration(8);
-
-            shiftRepository.saveAll(Arrays.asList(morningShift, earlyShift, lateShift));
-
-            // Create employees and assign shifts
+            shiftRepository.saveAll(Arrays.asList(midnightShift, morningShift, eveningShift));
             Employee emp1 = new Employee();
             emp1.setAttUid("john.doe");
             emp1.setEmail("john.doe@att.com");
@@ -54,7 +52,7 @@ public class DataLoader implements CommandLineRunner {
             emp1.setFirstName("John");
             emp1.setLastName("Doe");
             emp1.setActive(true);
-            emp1.setShift(morningShift);
+            emp1.setShift(midnightShift);
 
             Employee emp2 = new Employee();
             emp2.setAttUid("jane.smith");
@@ -64,7 +62,7 @@ public class DataLoader implements CommandLineRunner {
             emp2.setFirstName("Jane");
             emp2.setLastName("Smith");
             emp2.setActive(true);
-            emp2.setShift(earlyShift);
+            emp2.setShift(midnightShift);
 
             Employee emp3 = new Employee();
             emp3.setAttUid("bob.johnson");
@@ -74,7 +72,7 @@ public class DataLoader implements CommandLineRunner {
             emp3.setFirstName("Bob");
             emp3.setLastName("Johnson");
             emp3.setActive(true);
-            emp3.setShift(lateShift);
+            emp3.setShift(morningShift);
 
             Employee emp4 = new Employee();
             emp4.setAttUid("alice.brown");
@@ -84,7 +82,7 @@ public class DataLoader implements CommandLineRunner {
             emp4.setFirstName("Alice");
             emp4.setLastName("Brown");
             emp4.setActive(true);
-            emp4.setShift(earlyShift);
+            emp4.setShift(morningShift);
 
             Employee emp5 = new Employee();
             emp5.setAttUid("chris.wilson");
@@ -94,7 +92,7 @@ public class DataLoader implements CommandLineRunner {
             emp5.setFirstName("Chris");
             emp5.setLastName("Wilson");
             emp5.setActive(true);
-            emp5.setShift(morningShift);
+            emp5.setShift(eveningShift);
 
             Employee emp6 = new Employee();
             emp6.setAttUid("david.lee");
@@ -104,7 +102,7 @@ public class DataLoader implements CommandLineRunner {
             emp6.setFirstName("David");
             emp6.setLastName("Lee");
             emp6.setActive(true);
-            emp6.setShift(lateShift);
+            emp6.setShift(eveningShift);
 
             employeeRepository.saveAll(Arrays.asList(emp1, emp2, emp3, emp4, emp5, emp6));
             System.out.println("Sample shifts and employees loaded into database");

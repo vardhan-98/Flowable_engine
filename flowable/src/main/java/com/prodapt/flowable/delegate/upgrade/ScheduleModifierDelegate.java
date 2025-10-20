@@ -57,7 +57,7 @@ public class ScheduleModifierDelegate implements JavaDelegate {
                 workflowExec.setReScheduleCount(currentCount + 1);
 
                 // Reassign using SchedulingService
-                schedulingService.assignWorkflowToEmployee(workflowExec, newScheduledTime, "upgrade");
+                schedulingService.assignWorkflowToEmployee(workflowExec, newScheduledTime, "Upgrade");
 
                 workflowExecutionRepository.save(workflowExec);
 

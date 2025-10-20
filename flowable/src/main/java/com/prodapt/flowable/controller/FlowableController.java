@@ -1,22 +1,40 @@
 package com.prodapt.flowable.controller;
 
 import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 
 import org.flowable.engine.RuntimeService;
+import org.flowable.engine.repository.ProcessDefinition;
+import org.flowable.engine.RepositoryService;
 import org.flowable.engine.runtime.ProcessInstance;
+import org.flowable.engine.runtime.ActivityInstance;
+import org.flowable.engine.runtime.Execution;
+import org.flowable.bpmn.model.BpmnModel;
+import org.flowable.bpmn.converter.BpmnXMLConverter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.prodapt.flowable.entity.WorkflowExecution;
+import com.prodapt.flowable.entity.WorkflowExecutionSpecification;
 import com.prodapt.flowable.repository.WorkflowExecutionRepository;
 
 import jakarta.validation.Valid;
@@ -24,13 +42,18 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import org.springframework.validation.annotation.Validated;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @Validated
+@Slf4j
 public class FlowableController {
 
     @Autowired
     private RuntimeService runtimeService;
+
+    @Autowired
+    private RepositoryService repositoryService;
 
     @Autowired
     private WorkflowExecutionRepository workflowExecutionRepository;
@@ -44,7 +67,6 @@ public class FlowableController {
         @Email(message = "Invalid email format")
         private String customerEmail;
 
-        // Optional field - no validation annotation needed
         private String scheduledZoneDateTime;
     }
 
@@ -54,42 +76,192 @@ public class FlowableController {
         private String newScheduledZoneDateTime;
     }
 
+    @Data
+    public static class WorkflowFilterRequest {
+        private List<String> deviceIds;
+        private List<String> workflows;
+        private Boolean completed;
+        private String emailContact;
+        private String createdAtFrom;
+        private String createdAtTo;
+        private String scheduledTimeFrom;
+        private String scheduledTimeTo;
+        private List<String> processNames;
+        private List<String> processFlowIds;
+        private LinkedHashMap<String, String> sort;  // Changed to LinkedHashMap
+    }
+
+    @Data
+    public static class DiagramResponse {
+        private String bpmnXml;
+        private List<String> executedActivities;
+        private List<String> activeActivities;
+        private Map<String, ActivityDetail> activityDetails;
+    }
+
+    @Data
+    public static class ActivityDetail {
+        private ZonedDateTime startTime;
+        private ZonedDateTime endTime;
+    }
+
+    @PostMapping("/api/workflow-executions")
+    public ResponseEntity<Page<WorkflowExecution>> getWorkflowExecutions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestBody(required = false) WorkflowFilterRequest filter) {
+
+        if (filter == null) {
+            filter = new WorkflowFilterRequest();
+        }
+
+        Specification<WorkflowExecution> spec = WorkflowExecutionSpecification.withFilters(
+                filter.getDeviceIds(),
+                filter.getWorkflows(),
+                filter.getCompleted(),
+                filter.getEmailContact(),
+                filter.getCreatedAtFrom(),
+                filter.getCreatedAtTo(),
+                filter.getScheduledTimeFrom(),
+                filter.getScheduledTimeTo(),
+                filter.getProcessNames(),
+                filter.getProcessFlowIds());
+
+        Sort sortObj = Sort.unsorted();
+        if (filter.getSort() != null && !filter.getSort().isEmpty()) {
+            List<Sort.Order> orders = new ArrayList<>();
+            for (Map.Entry<String, String> entry : filter.getSort().entrySet()) {
+                String dir = entry.getValue().toLowerCase();
+                if ("asc".equals(dir)) {
+                    orders.add(Sort.Order.asc(entry.getKey()));
+                } else {
+                    orders.add(Sort.Order.desc(entry.getKey()));
+                }
+            }
+            sortObj = Sort.by(orders);
+        } else {
+            sortObj = Sort.by("createdAt").descending();
+        }
+
+        Pageable pageable = PageRequest.of(page, size, sortObj);
+
+        Page<WorkflowExecution> result = workflowExecutionRepository.findAll(spec, pageable);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/api/process-definition/{processDefinitionId}/diagram")
+    public ResponseEntity<DiagramResponse> getProcessDefinitionDiagram(@PathVariable String processDefinitionId) {
+        try {
+            org.flowable.engine.repository.ProcessDefinition processDefinition = 
+                repositoryService.getProcessDefinition(processDefinitionId);
+            
+            if (processDefinition == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
+            BpmnXMLConverter converter = new BpmnXMLConverter();
+            byte[] xmlBytes = converter.convertToXML(bpmnModel);
+            String bpmnXml = new String(xmlBytes, StandardCharsets.UTF_8);
+
+            DiagramResponse response = new DiagramResponse();
+            response.setBpmnXml(bpmnXml);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/api/process-instance/{processInstanceId}/diagram")
+    public ResponseEntity<DiagramResponse> getProcessInstanceDiagram(@PathVariable String processInstanceId) {
+        try {
+            ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
+                    .processInstanceId(processInstanceId).singleResult();
+            
+            if (processInstance == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            String processDefinitionId = processInstance.getProcessDefinitionId();
+
+            BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
+            BpmnXMLConverter converter = new BpmnXMLConverter();
+            byte[] xmlBytes = converter.convertToXML(bpmnModel);
+            String bpmnXml = new String(xmlBytes, StandardCharsets.UTF_8);
+
+            // Get executed activities
+            List<String> executedActivities = new ArrayList<>();
+            Map<String, ActivityDetail> activityDetails = new HashMap<>();
+            List<ActivityInstance> activityInstances = runtimeService.createActivityInstanceQuery()
+                    .processInstanceId(processInstanceId).finished().list();
+            
+            for (ActivityInstance instance : activityInstances) {
+                if (!executedActivities.contains(instance.getActivityId())) {
+                    executedActivities.add(instance.getActivityId());
+                }
+                ActivityDetail detail = new ActivityDetail();
+                // Convert Date to ZonedDateTime
+                detail.setStartTime(instance.getStartTime() != null 
+                    ? ZonedDateTime.ofInstant(instance.getStartTime().toInstant(), ZoneOffset.UTC) 
+                    : null);
+                detail.setEndTime(instance.getEndTime() != null 
+                    ? ZonedDateTime.ofInstant(instance.getEndTime().toInstant(), ZoneOffset.UTC) 
+                    : null);
+                activityDetails.put(instance.getActivityId(), detail);
+            }
+
+            // Get active activities
+            List<String> activeActivities = runtimeService.getActiveActivityIds(processInstanceId);
+
+            DiagramResponse response = new DiagramResponse();
+            response.setBpmnXml(bpmnXml);
+            response.setExecutedActivities(executedActivities);
+            response.setActiveActivities(activeActivities);
+            response.setActivityDetails(activityDetails);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @PostMapping("/api/devices/start-batch-upgrade")
     public ResponseEntity<Map<String, Object>> startBatchUpgrade(@Valid @RequestBody List<@Valid DeviceRequest> devices) {
         Map<String, Object> response = new HashMap<>();
-        List<String> startedProcesses = new java.util.ArrayList<>();
+        List<String> startedProcesses = new ArrayList<>();
+
+        // Fetch process definition details outside the loop for efficiency
+        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionKey("Process_1").latestVersion().singleResult();
+        String processName = processDefinition.getName();
+        String processFlowId = processDefinition.getId();
 
         for (DeviceRequest device : devices) {
             try {
-                // Create execution variables
                 Map<String, Object> variables = new HashMap<>();
                 variables.put("deviceId", device.getDeviceId());
                 variables.put("customerEmail", device.getCustomerEmail());
 
-                // Validate and set scheduledUpgradeDateTime only if provided
                 if (device.getScheduledZoneDateTime() != null && !device.getScheduledZoneDateTime().trim().isEmpty()) {
                     try {
                         ZonedDateTime scheduledTime = ZonedDateTime.parse(device.getScheduledZoneDateTime());
                         variables.put("scheduledUpgradeDateTime", scheduledTime);
 
-                        // Set preUpgradeDateTime (7 days before scheduled time)
                         ZonedDateTime preUpgradeTime = scheduledTime.minusDays(7);
                         variables.put("preUpgradeDateTime", preUpgradeTime);
                     } catch (Exception e) {
-                        // Skip setting the variable if parsing fails
-                        // Continue with process creation without scheduled time
+                        // Continue without scheduled time
                     }
                 }
 
-                // Start process instance
                 ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("Process_1", variables);
 
-                // Create WorkflowExecution record
                 WorkflowExecution workflowExecution = new WorkflowExecution();
                 workflowExecution.setFlowInstanceId(processInstance.getId());
                 workflowExecution.setDeviceId(device.getDeviceId());
                 workflowExecution.setWorkflow("DeviceUpgrade");
                 workflowExecution.setLocalCustomerEmailContact(device.getCustomerEmail());
+                workflowExecution.setProcessName(processName);
+                workflowExecution.setProcessFlowId(processFlowId);
                 workflowExecutionRepository.save(workflowExecution);
 
                 startedProcesses.add(device.getDeviceId() + ": " + processInstance.getId());
@@ -115,7 +287,6 @@ public class FlowableController {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            // Find the workflow execution record
             Optional<WorkflowExecution> workflowOpt = workflowExecutionRepository.findById(processInstanceId);
 
             if (!workflowOpt.isPresent()) {
@@ -125,8 +296,9 @@ public class FlowableController {
 
             WorkflowExecution workflowExecution = workflowOpt.get();
 
-            // Check reschedule limit (max 3 times)
-            Integer currentCount = workflowExecution.getReScheduleCount() != null ? workflowExecution.getReScheduleCount() : 0;
+            Integer currentCount = workflowExecution.getReScheduleCount() != null 
+                ? workflowExecution.getReScheduleCount() : 0;
+            
             if (currentCount >= 3) {
                 response.put("message", "Reschedule limit exceeded. Maximum 3 reschedules allowed.");
                 response.put("currentRescheduleCount", currentCount);
@@ -134,7 +306,6 @@ public class FlowableController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            // Parse and validate new scheduled time
             ZonedDateTime newScheduledTime;
             try {
                 newScheduledTime = ZonedDateTime.parse(request.getNewScheduledZoneDateTime());
@@ -143,12 +314,31 @@ public class FlowableController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            // Check if new time is in the future
             if (newScheduledTime.isBefore(ZonedDateTime.now())) {
                 response.put("message", "New scheduled time must be in the future");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
-            runtimeService.messageEventReceived("Message_Reschedule", processInstanceId, Map.of("newScheduledUpgradeDateTime", newScheduledTime));
+
+            // Verify the process is at the reschedule window
+            List<String> activeActivities = runtimeService.getActiveActivityIds(processInstanceId);
+            log.info("Active activities for {}: {}", processInstanceId, activeActivities);
+            if (!activeActivities.contains("Activity_19qntoo")) {
+                response.put("message", "Process not in reschedule window - current activities: " + activeActivities);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+
+            // Trigger the receiveTask execution directly
+            Execution execution = runtimeService.createExecutionQuery()
+                .processInstanceId(processInstanceId)
+                .activityId("Activity_19qntoo")
+                .singleResult();
+
+            if (execution == null) {
+                throw new RuntimeException("No execution found at the reschedule window");
+            }
+
+            log.info("Triggering execution {} for reschedule", execution.getId());
+            runtimeService.trigger(execution.getId(), Map.of("newScheduledUpgradeDateTime", newScheduledTime));
 
             response.put("message", "Device upgrade rescheduled successfully");
             response.put("processInstanceId", processInstanceId);
@@ -157,11 +347,11 @@ public class FlowableController {
             response.put("rescheduleCount", currentCount + 1);
 
         } catch (Exception e) {
+            log.error("Reschedule failed", e);
             response.put("message", "Reschedule failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
 
         return ResponseEntity.ok(response);
     }
-
 }

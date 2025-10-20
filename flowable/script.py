@@ -19,9 +19,9 @@ class DeviceRequest(BaseModel):
 # Helper function to log to Elasticsearch synchronously
 def log_to_es(flow_id, device_id, stage, step, status, message, details=None):
     # Random delay between 1 and 30 seconds
-    delay = random.randint(1, 30)
-    print(f"Sleeping for {delay} seconds before logging...")
-    time.sleep(delay)
+    # delay = random.randint(1, 2)
+    # print(f"Sleeping for {delay} seconds before logging...")
+    # time.sleep(delay)
 
     # Convert timestamp to Unix timestamp (milliseconds) for ES compatibility
     timestamp_ms = int(datetime.now().timestamp() * 1000)
