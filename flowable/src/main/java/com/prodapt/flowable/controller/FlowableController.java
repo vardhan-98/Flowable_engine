@@ -11,7 +11,10 @@ import java.util.ArrayList;
 import java.nio.charset.StandardCharsets;
 
 import org.flowable.engine.RuntimeService;
+import org.flowable.engine.history.HistoricProcessInstance;
+import org.flowable.engine.history.HistoricActivityInstance;
 import org.flowable.engine.repository.ProcessDefinition;
+import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.engine.runtime.ActivityInstance;
@@ -51,6 +54,9 @@ public class FlowableController {
 
     @Autowired
     private RuntimeService runtimeService;
+
+    @Autowired
+    private HistoryService historyService;
 
     @Autowired
     private RepositoryService repositoryService;
@@ -175,14 +181,14 @@ public class FlowableController {
     @GetMapping("/api/process-instance/{processInstanceId}/diagram")
     public ResponseEntity<DiagramResponse> getProcessInstanceDiagram(@PathVariable String processInstanceId) {
         try {
-            ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
+            HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery()
                     .processInstanceId(processInstanceId).singleResult();
-            
-            if (processInstance == null) {
+
+            if (historicProcessInstance == null) {
                 return ResponseEntity.notFound().build();
             }
 
-            String processDefinitionId = processInstance.getProcessDefinitionId();
+            String processDefinitionId = historicProcessInstance.getProcessDefinitionId();
 
             BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
             BpmnXMLConverter converter = new BpmnXMLConverter();
@@ -192,26 +198,31 @@ public class FlowableController {
             // Get executed activities
             List<String> executedActivities = new ArrayList<>();
             Map<String, ActivityDetail> activityDetails = new HashMap<>();
-            List<ActivityInstance> activityInstances = runtimeService.createActivityInstanceQuery()
+            List<HistoricActivityInstance> historicActivityInstances = historyService.createHistoricActivityInstanceQuery()
                     .processInstanceId(processInstanceId).finished().list();
-            
-            for (ActivityInstance instance : activityInstances) {
+
+            for (HistoricActivityInstance instance : historicActivityInstances) {
                 if (!executedActivities.contains(instance.getActivityId())) {
                     executedActivities.add(instance.getActivityId());
                 }
                 ActivityDetail detail = new ActivityDetail();
                 // Convert Date to ZonedDateTime
-                detail.setStartTime(instance.getStartTime() != null 
-                    ? ZonedDateTime.ofInstant(instance.getStartTime().toInstant(), ZoneOffset.UTC) 
+                detail.setStartTime(instance.getStartTime() != null
+                    ? ZonedDateTime.ofInstant(instance.getStartTime().toInstant(), ZoneOffset.UTC)
                     : null);
-                detail.setEndTime(instance.getEndTime() != null 
-                    ? ZonedDateTime.ofInstant(instance.getEndTime().toInstant(), ZoneOffset.UTC) 
+                detail.setEndTime(instance.getEndTime() != null
+                    ? ZonedDateTime.ofInstant(instance.getEndTime().toInstant(), ZoneOffset.UTC)
                     : null);
                 activityDetails.put(instance.getActivityId(), detail);
             }
 
             // Get active activities
-            List<String> activeActivities = runtimeService.getActiveActivityIds(processInstanceId);
+            List<String> activeActivities = new ArrayList<>();
+            try {
+                activeActivities = runtimeService.getActiveActivityIds(processInstanceId);
+            } catch (Exception e) {
+                // Process is completed, no active activities
+            }
 
             DiagramResponse response = new DiagramResponse();
             response.setBpmnXml(bpmnXml);
