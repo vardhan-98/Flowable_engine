@@ -43,4 +43,15 @@ public interface EmployeeRepository extends JpaRepository<Employee, String> {
 	               "WHERE e.is_active = true " +
 	               "ORDER BY e.att_uid, t.id NULLS LAST, w.created_at", nativeQuery = true)
 	List<Object[]> findEmployeesTasksWorkflowsNative(@Param("startParam") ZonedDateTime start, @Param("endParam") ZonedDateTime end);
+
+	@Query(value = "SELECT e.att_uid, e.first_name, e.last_name, e.email, e.role, " +
+	               "t.id task_id, t.start_time, t.end_time, t.workflow_count, " +
+	               "w.flow_instance_id, w.device_id, w.workflow, w.step, w.message, w.assigned_dtac, w.created_at, w.scheduled_time, w.device_compatibility_time, " +
+	               "w.local_customer_email_contact, w.local_customer_mobile_contact, w.issuer, w.process_name, w.process_flow_id, w.completed, w.completed_time, w.last_updated, w.re_schedule_count " +
+	               "FROM app_data.employee e " +
+	               "LEFT JOIN app_data.task t ON t.assigned_user_id = e.att_uid AND t.start_time < :endParam AND t.end_time > :startParam " +
+	               "LEFT JOIN app_data.workflow_execution w ON w.task_id = t.id " +
+	               "WHERE e.att_uid = :attUid AND e.is_active = true " +
+	               "ORDER BY t.id NULLS LAST, w.created_at", nativeQuery = true)
+	List<Object[]> findEmployeeTasksWorkflowsNative(@Param("attUid") String attUid, @Param("startParam") ZonedDateTime start, @Param("endParam") ZonedDateTime end);
 }

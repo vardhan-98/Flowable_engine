@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import com.prodapt.flowable.entity.WorkflowExecution;
 import com.prodapt.flowable.repository.WorkflowExecutionRepository;
 import com.prodapt.flowable.service.ElasticsearchService;
+import com.prodapt.flowable.service.EmailService;
 import com.prodapt.flowable.service.scheduler.SchedulingService;
 
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,9 @@ public class ScheduleModifierDelegate implements JavaDelegate {
 
     @Autowired
     private final ElasticsearchService elasticsearchService;
+
+    @Autowired
+    private final EmailService emailService;
 
     @Autowired
     private final SchedulingService schedulingService;
@@ -54,12 +58,19 @@ public class ScheduleModifierDelegate implements JavaDelegate {
 
                 // Increment reschedule count
                 Integer currentCount = workflowExec.getReScheduleCount() != null ? workflowExec.getReScheduleCount() : 0;
-                workflowExec.setReScheduleCount(currentCount + 1);
+                Integer newCount = currentCount + 1;
+                workflowExec.setReScheduleCount(newCount);
 
                 // Reassign using SchedulingService
                 schedulingService.assignWorkflowToEmployee(workflowExec, newScheduledTime, "Upgrade");
 
                 workflowExecutionRepository.save(workflowExec);
+
+                // Calculate remaining reschedules (max 3 allowed)
+                Integer remainingReschedules = 3 - newCount;
+
+                // Send reschedule confirmation email
+                emailService.sendRescheduleEmail(workflowExec.getLocalCustomerEmailContact(), deviceId, newScheduledTime.toString(), remainingReschedules, flowId);
 
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "schedule-modifier", "COMPLETED",
                         "Schedule modified - new scheduled time: " + newScheduledTime + ", pre-upgrade time: " + preUpgradeTime);
