@@ -3,6 +3,7 @@ package com.prodapt.flowable.entity;
 import java.time.ZonedDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.Entity;
@@ -26,9 +27,10 @@ public class Task {
 	ZonedDateTime startTime;
 	// This should be after a particular Comes in as param duration Auto calculated
 	ZonedDateTime endTime;
-	//Mappend to Employee as a one emp to many tasks
+	//Mapped to Employee as a one emp to many tasks
 	@ManyToOne
 	@JoinColumn(name = "assigned_user_id")
+	@JsonBackReference("tasks")
 	Employee assignedEmployee;
 	@OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
 	@JsonManagedReference

@@ -3,6 +3,7 @@ package com.prodapt.flowable.entity;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -32,7 +33,7 @@ public class Employee {
 	@JsonIgnore
 	List<Leave> leaves;
 	@OneToMany(mappedBy = "assignedEmployee", cascade = CascadeType.ALL)
-	@JsonIgnore
+	@JsonManagedReference("tasks")
 	List<Task> tasks;
 	@ManyToOne
 	@JoinColumn(name = "employee_shift_id")

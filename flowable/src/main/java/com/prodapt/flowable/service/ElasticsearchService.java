@@ -1,10 +1,16 @@
 package com.prodapt.flowable.service;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.query.Criteria;
+import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.stereotype.Service;
 
 import com.prodapt.flowable.entity.LogEntry;
@@ -66,9 +72,10 @@ public class ElasticsearchService {
                 return;
             }
 
-            // Update the step field and message based on current logging
+            // Update the step field, message, and status based on current logging
             workflowExecution.setStep(step);
             workflowExecution.setMessage(message);
+            workflowExecution.setStatus(status);
 
             // For completed workflows, update completed status
             if ("vnf-spinup".equals(step) && ("SUCCESS".equals(status) || "COMPLETED".equals(status))) {
@@ -76,7 +83,6 @@ public class ElasticsearchService {
                 workflowExecution.setCompletedTime(ZonedDateTime.now());
             }
 
-            workflowExecutionRepository.save(workflowExecution);
             log.info("Updated WorkflowExecution step: {} for flowId: {}", step, flowId);
         } catch (Exception ex) {
             log.error("Failed to update WorkflowExecution for flowId: {}", flowId, ex);
@@ -98,5 +104,15 @@ public class ElasticsearchService {
         } catch (Exception e) {
             return "Unknown";
         }
+    }
+
+    public List<LogEntry> getLogsByFlowId(String flowId) {
+        Criteria criteria = new Criteria();
+        if (flowId != null) {
+            criteria = criteria.and("flowInstanceId").is(flowId);
+        }
+        CriteriaQuery query = new CriteriaQuery(criteria);
+        SearchHits<LogEntry> searchHits = elasticsearchOperations.search(query, LogEntry.class);
+        return searchHits.getSearchHits().stream().map(SearchHit::getContent).collect(Collectors.toList());
     }
 }

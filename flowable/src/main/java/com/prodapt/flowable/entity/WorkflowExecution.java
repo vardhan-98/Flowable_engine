@@ -47,6 +47,7 @@ public class WorkflowExecution {
 	ZonedDateTime completedTime;
 	ZonedDateTime lastUpdated;
 	Integer reScheduleCount;
+	String status;
 
 	@PrePersist
 	public void setCreatedAt() {

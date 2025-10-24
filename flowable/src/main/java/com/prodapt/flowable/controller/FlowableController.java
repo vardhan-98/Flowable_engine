@@ -29,6 +29,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,7 +39,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.prodapt.flowable.entity.WorkflowExecution;
 import com.prodapt.flowable.entity.WorkflowExecutionSpecification;
+import com.prodapt.flowable.entity.LogEntry;
+import com.prodapt.flowable.entity.Task;
+import com.prodapt.flowable.service.ElasticsearchService;
 import com.prodapt.flowable.repository.WorkflowExecutionRepository;
+import com.prodapt.flowable.repository.TaskRepository;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -50,6 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @Validated
 @Slf4j
+@CrossOrigin
 public class FlowableController {
 
     @Autowired
@@ -63,6 +69,12 @@ public class FlowableController {
 
     @Autowired
     private WorkflowExecutionRepository workflowExecutionRepository;
+
+    @Autowired
+    private ElasticsearchService elasticsearchService;
+
+    @Autowired
+    private TaskRepository taskRepository;
 
     @Data
     public static class DeviceRequest {
@@ -153,29 +165,6 @@ public class FlowableController {
 
         Page<WorkflowExecution> result = workflowExecutionRepository.findAll(spec, pageable);
         return ResponseEntity.ok(result);
-    }
-
-    @GetMapping("/api/process-definition/{processDefinitionId}/diagram")
-    public ResponseEntity<DiagramResponse> getProcessDefinitionDiagram(@PathVariable String processDefinitionId) {
-        try {
-            org.flowable.engine.repository.ProcessDefinition processDefinition = 
-                repositoryService.getProcessDefinition(processDefinitionId);
-            
-            if (processDefinition == null) {
-                return ResponseEntity.notFound().build();
-            }
-
-            BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
-            BpmnXMLConverter converter = new BpmnXMLConverter();
-            byte[] xmlBytes = converter.convertToXML(bpmnModel);
-            String bpmnXml = new String(xmlBytes, StandardCharsets.UTF_8);
-
-            DiagramResponse response = new DiagramResponse();
-            response.setBpmnXml(bpmnXml);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
     }
 
     @GetMapping("/api/process-instance/{processInstanceId}/diagram")
@@ -273,6 +262,7 @@ public class FlowableController {
                 workflowExecution.setLocalCustomerEmailContact(device.getCustomerEmail());
                 workflowExecution.setProcessName(processName);
                 workflowExecution.setProcessFlowId(processFlowId);
+                workflowExecution.setStatus("STARTED");
                 workflowExecutionRepository.save(workflowExecution);
 
                 startedProcesses.add(device.getDeviceId() + ": " + processInstance.getId());
@@ -351,6 +341,11 @@ public class FlowableController {
             log.info("Triggering execution {} for reschedule", execution.getId());
             runtimeService.trigger(execution.getId(), Map.of("newScheduledUpgradeDateTime", newScheduledTime));
 
+            // Update the workflow execution status and reschedule count
+            workflowExecution.setStatus("RESCHEDULED");
+            workflowExecution.setReScheduleCount(currentCount + 1);
+            workflowExecutionRepository.save(workflowExecution);
+
             response.put("message", "Device upgrade rescheduled successfully");
             response.put("processInstanceId", processInstanceId);
             response.put("newScheduledTime", newScheduledTime.toString());
@@ -364,5 +359,29 @@ public class FlowableController {
         }
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/logs")
+    public ResponseEntity<List<LogEntry>> getLogs(@RequestParam String flowId) {
+        try {
+            List<LogEntry> logs = elasticsearchService.getLogsByFlowId(flowId);
+            return ResponseEntity.ok(logs);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/api/tasks/{taskId}")
+    public ResponseEntity<Task> getTaskById(@PathVariable String taskId) {
+        try {
+            Optional<Task> task = taskRepository.findById(taskId);
+            if (task.isPresent()) {
+                return ResponseEntity.ok(task.get());
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

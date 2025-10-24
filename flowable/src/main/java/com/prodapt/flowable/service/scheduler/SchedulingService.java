@@ -4,6 +4,7 @@ import java.time.ZonedDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -125,8 +126,8 @@ public class SchedulingService {
         // Fetch employees with the skill, active status, and tasks/leaves within the time range
         List<Employee> candidates = employeeRepository.findBySkillAndActiveWithLeavesAndTasksInRange(skill, start, end);
 
-        List<ZonedDateTime> allSlots = getSlots(start, end);
-        Set<ZonedDateTime> availableSlots = new HashSet<>();
+    List<ZonedDateTime> allSlots = getSlots(start, end);
+    List<ZonedDateTime> availableSlots = new ArrayList<>();
 
         for (ZonedDateTime slotStart : allSlots) {
             // STRICT: Only include future slots
@@ -164,13 +165,16 @@ public class SchedulingService {
 
                 int availableCapacity = maxDevicesPerSlot - currentCount;
                 if (availableCapacity > 0) {
-                    availableSlots.add(slotStart);
+                    if (!availableSlots.contains(slotStart)) {
+                        availableSlots.add(slotStart);
+                    }
                     break; // Slot is available if at least one employee has capacity
                 }
             }
         }
 
-        return new ArrayList<>(availableSlots);
+        Collections.sort(availableSlots);
+        return availableSlots;
     }
 
     /**
