@@ -121,19 +121,16 @@ public class SchedulingService {
      * @return List of ZonedDateTime representing the start times of available slots.
      */
     public List<ZonedDateTime> getAvailableSlots(ZonedDateTime start, ZonedDateTime end, String skill) {
-        long threadId = Thread.currentThread().getId();
-        String threadName = Thread.currentThread().getName();
-        
-        System.out.println("\n[THREAD-" + threadId + "][" + threadName + "] getAvailableSlots - Skill: " + skill);
-        
         ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+        
+        // Fetch employees with the skill, active status, and tasks/leaves within the time range
         List<Employee> candidates = employeeRepository.findBySkillAndActiveWithLeavesAndTasksInRange(skill, start, end);
-        System.out.println("[THREAD-" + threadId + "] Candidates: " + candidates.size() + ", Checking " + getSlots(start, end).size() + " time slots");
 
         List<ZonedDateTime> allSlots = getSlots(start, end);
         List<ZonedDateTime> availableSlots = new ArrayList<>();
 
         for (ZonedDateTime slotStart : allSlots) {
+            // STRICT: Only include future slots
             if (!slotStart.isAfter(now)) {
                 continue;
             }
@@ -141,10 +138,12 @@ public class SchedulingService {
             ZonedDateTime slotEnd = slotStart.plusHours(4);
 
             for (Employee emp : candidates) {
+                // Check shift coverage
                 if (!doesShiftCoverWindow(emp.getShift(), slotStart, slotEnd)) {
                     continue;
                 }
 
+                // Check leaves
                 boolean onLeave = false;
                 for (Leave leave : emp.getLeaves()) {
                     if (!leave.getEndTime().isBefore(slotStart) && !leave.getStartTime().isAfter(slotEnd)) {
@@ -156,6 +155,7 @@ public class SchedulingService {
                     continue;
                 }
 
+                // Check existing tasks for overlap and capacity
                 int currentCount = 0;
                 for (Task task : emp.getTasks()) {
                     if (!task.getEndTime().isBefore(slotStart) && !task.getStartTime().isAfter(slotEnd)) {
@@ -174,7 +174,6 @@ public class SchedulingService {
         }
 
         Collections.sort(availableSlots);
-        System.out.println("[THREAD-" + threadId + "] Available slots: " + availableSlots.size() + "\n");
         return availableSlots;
     }
 
@@ -200,11 +199,8 @@ public class SchedulingService {
      */
     @Transactional
     public void assignWorkflowToEmployee(WorkflowExecution workflowExec, ZonedDateTime requestedTime, String skill) {
-        long threadId = Thread.currentThread().getId();
-        String threadName = Thread.currentThread().getName();
         
-        System.out.println("\n[THREAD-" + threadId + "][" + threadName + "] assignWorkflow - Flow: " + workflowExec.getFlowInstanceId() + ", Time: " + requestedTime);
-        
+        // Validate: No scheduling in the past
         ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
         if (requestedTime.isBefore(now)) {
             throw new RuntimeException(String.format(
@@ -216,7 +212,6 @@ public class SchedulingService {
         // Detach from existing task if assigned
         Task previousTask = workflowExec.getTask();
         if (previousTask != null) {
-            System.out.println("[THREAD-" + threadId + "] Detaching from previous task: " + previousTask.getId() + " (was " + previousTask.getWorkflowCount() + " workflows)");
             previousTask.getWorkflows().remove(workflowExec);
             if (previousTask.getWorkflowCount() != null && previousTask.getWorkflowCount() > 0) {
                 previousTask.setWorkflowCount(previousTask.getWorkflowCount() - 1);
@@ -225,27 +220,35 @@ public class SchedulingService {
             taskRepository.save(previousTask);
         }
 
+        // Create 4-hour window from exact requested time
         ZonedDateTime windowStart = requestedTime.withZoneSameInstant(ZoneOffset.UTC);
         ZonedDateTime windowEnd = windowStart.plusHours(4);
+        
+        // Get the full day range for querying employee tasks
         ZonedDateTime dayStart = windowStart.truncatedTo(ChronoUnit.DAYS);
         ZonedDateTime dayEnd = dayStart.plusDays(1);
 
+        // Fetch candidates with tasks and leaves in the day range
         List<Employee> candidates = employeeRepository.findBySkillAndActiveWithLeavesAndTasksInRange(skill, dayStart, dayEnd);
-        System.out.println("[THREAD-" + threadId + "] Evaluating " + candidates.size() + " candidates for window " + windowStart.toLocalTime() + "-" + windowEnd.toLocalTime());
 
         Employee selectedEmp = null;
         int minTotalDayCount = Integer.MAX_VALUE;
         List<String> rejectionReasons = new ArrayList<>();
-        List<String> eligibleCandidates = new ArrayList<>();
 
         for (Employee emp : candidates) {
             String empId = emp.getAttUid();
             
+            // Check shift coverage
             if (!doesShiftCoverWindow(emp.getShift(), windowStart, windowEnd)) {
-                rejectionReasons.add(empId + ": Shift doesn't cover window");
+                rejectionReasons.add(String.format("%s: Shift %s doesn't cover window %s-%s", 
+                    empId, 
+                    emp.getShift() != null ? emp.getShift().getCode() : "NULL",
+                    windowStart.toLocalTime(), 
+                    windowEnd.toLocalTime()));
                 continue;
             }
 
+            // Check if on leave during window
             boolean onLeave = false;
             for (Leave leave : emp.getLeaves()) {
                 if (!leave.getEndTime().isBefore(windowStart) && !leave.getStartTime().isAfter(windowEnd)) {
@@ -254,83 +257,67 @@ public class SchedulingService {
                 }
             }
             if (onLeave) {
-                rejectionReasons.add(empId + ": On leave");
+                rejectionReasons.add(empId + ": On leave during window");
                 continue;
             }
 
+            // Check capacity: count workflows in ALL tasks that overlap with this window
             int currentWindowCount = 0;
             for (Task task : emp.getTasks()) {
+                // Check if task overlaps with the requested window
                 if (!task.getEndTime().isBefore(windowStart) && !task.getStartTime().isAfter(windowEnd)) {
                     currentWindowCount += task.getWorkflowCount() != null ? task.getWorkflowCount() : 0;
                 }
             }
             
             if (currentWindowCount >= maxDevicesPerSlot) {
-                rejectionReasons.add(empId + ": At capacity (" + currentWindowCount + "/" + maxDevicesPerSlot + ")");
+                rejectionReasons.add(String.format("%s: At capacity (%d/%d workflows in window)", 
+                    empId, currentWindowCount, maxDevicesPerSlot));
                 continue;
             }
 
+            // Calculate total devices for the day (for load balancing)
             int totalDayCount = 0;
-            StringBuilder taskWindows = new StringBuilder();
             for (Task task : emp.getTasks()) {
                 totalDayCount += task.getWorkflowCount() != null ? task.getWorkflowCount() : 0;
-                if (taskWindows.length() > 0) {
-                    taskWindows.append(", ");
-                }
-                taskWindows.append(task.getStartTime().toLocalTime()).append("-").append(task.getEndTime().toLocalTime())
-                           .append("(").append(task.getWorkflowCount()).append(")");
             }
-            
-            // This employee is eligible - add to eligible list with task details
-            String candidateInfo = empId + " (window: " + currentWindowCount + "/" + maxDevicesPerSlot + 
-                                  ", day: " + totalDayCount + ", tasks: " + emp.getTasks().size();
-            if (emp.getTasks().size() > 0) {
-                candidateInfo += " [" + taskWindows.toString() + "]";
-            }
-            candidateInfo += ")";
-            eligibleCandidates.add(candidateInfo);
-            
+
+            // Select the employee with the least total day count
             if (totalDayCount < minTotalDayCount) {
                 minTotalDayCount = totalDayCount;
                 selectedEmp = emp;
             }
         }
 
-        // Log all eligible candidates for this thread
-        if (!eligibleCandidates.isEmpty()) {
-            System.out.println("[THREAD-" + threadId + "] ELIGIBLE candidates (" + eligibleCandidates.size() + "): " + String.join(", ", eligibleCandidates));
-        }
-
         if (selectedEmp == null) {
-            System.out.println("[THREAD-" + threadId + "] ERROR: No employee available. Reasons: " + String.join("; ", rejectionReasons));
-            throw new RuntimeException(String.format(
-                "No available employee found for window %s to %s with skill '%s'. Checked %d employees",
-                windowStart, windowEnd, skill, candidates.size()
-            ));
+            String errorMsg = String.format(
+                "No available employee found for window %s to %s with skill '%s'. " +
+                "Checked %d employees. Reasons: %s",
+                windowStart, windowEnd, skill, candidates.size(),
+                rejectionReasons.isEmpty() ? "No candidates found with skill" : String.join("; ", rejectionReasons)
+            );
+            throw new RuntimeException(errorMsg);
         }
-        
-        System.out.println("[THREAD-" + threadId + "] Selected: " + selectedEmp.getAttUid() + " (day workload: " + minTotalDayCount + " workflows)");
 
         // Find existing task with EXACT same start/end time
         Task existingTask = null;
         for (Task task : selectedEmp.getTasks()) {
             if (task.getStartTime().equals(windowStart) && task.getEndTime().equals(windowEnd)) {
                 existingTask = task;
-                System.out.println("[THREAD-" + threadId + "] REUSING task " + task.getId() + " (current: " + task.getWorkflowCount() + " workflows)");
                 break;
             }
         }
 
         Task assignedTask;
         if (existingTask != null) {
+            // Add workflow to existing task with exact same time window
             assignedTask = existingTask;
             assignedTask.getWorkflows().add(workflowExec);
             assignedTask.setWorkflowCount(assignedTask.getWorkflowCount() + 1);
-            System.out.println("[THREAD-" + threadId + "] Task now has " + assignedTask.getWorkflowCount() + " workflows (GROUPED)");
         } else {
+            // Create new task for this specific time window
             assignedTask = new Task();
-            String newTaskId = UUID.randomUUID().toString();
-            assignedTask.setId(newTaskId);
+            assignedTask.setId(UUID.randomUUID().toString());
             assignedTask.setStartTime(windowStart);
             assignedTask.setEndTime(windowEnd);
             assignedTask.setAssignedEmployee(selectedEmp);
@@ -338,14 +325,11 @@ public class SchedulingService {
             assignedTask.getWorkflows().add(workflowExec);
             assignedTask.setWorkflowCount(1);
             selectedEmp.getTasks().add(assignedTask);
-            System.out.println("[THREAD-" + threadId + "] NEW task created: " + newTaskId + " (" + windowStart.toLocalTime() + "-" + windowEnd.toLocalTime() + ")");
         }
 
         workflowExec.setTask(assignedTask);
         workflowExecutionRepository.save(workflowExec);
         taskRepository.save(assignedTask);
         employeeRepository.save(selectedEmp);
-        
-        System.out.println("[THREAD-" + threadId + "] assignWorkflow COMPLETED - Employee: " + selectedEmp.getAttUid() + ", Task: " + assignedTask.getId() + " (" + assignedTask.getWorkflowCount() + " workflows)\n");
     }
 }
