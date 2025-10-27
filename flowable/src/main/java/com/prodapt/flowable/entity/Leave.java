@@ -2,6 +2,8 @@ package com.prodapt.flowable.entity;
 
 import java.time.ZonedDateTime;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
@@ -28,5 +30,14 @@ public class Leave {
 	@ManyToOne
 	@JoinColumn(name = "employee_att_uid")
 	Employee employee;
+
+	@Override
+	public String toString() {
+		try {
+			return new ObjectMapper().writeValueAsString(this);
+		} catch (Exception e) {
+			return "Leave{Error serializing to JSON: " + e.getMessage() + "}";
+		}
+	}
 
 }

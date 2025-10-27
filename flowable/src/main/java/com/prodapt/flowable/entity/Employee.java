@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -41,5 +42,14 @@ public class Employee {
 	String firstName;
 	String lastName;
 	boolean isActive;
+
+	@Override
+	public String toString() {
+		try {
+			return new ObjectMapper().writeValueAsString(this);
+		} catch (Exception e) {
+			return "Employee{Error serializing to JSON: " + e.getMessage() + "}";
+		}
+	}
 
 }

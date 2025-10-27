@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -36,4 +37,13 @@ public class Task {
 	@JsonManagedReference
 	List<WorkflowExecution> workflows;
 	Integer workflowCount;
+
+	@Override
+	public String toString() {
+		try {
+			return new ObjectMapper().writeValueAsString(this);
+		} catch (Exception e) {
+			return "Task{Error serializing to JSON: " + e.getMessage() + "}";
+		}
+	}
 }

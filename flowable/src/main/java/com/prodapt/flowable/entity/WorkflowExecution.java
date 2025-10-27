@@ -3,6 +3,7 @@ package com.prodapt.flowable.entity;
 import java.time.ZonedDateTime;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -57,6 +58,15 @@ public class WorkflowExecution {
 	@PreUpdate
 	public void setLastUpdated() {
 		this.lastUpdated = ZonedDateTime.now();
+	}
+
+	@Override
+	public String toString() {
+		try {
+			return new ObjectMapper().writeValueAsString(this);
+		} catch (Exception e) {
+			return "WorkflowExecution{Error serializing to JSON: " + e.getMessage() + "}";
+		}
 	}
 
 }
