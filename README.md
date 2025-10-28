@@ -95,7 +95,6 @@ The system is designed for telecom/network environments where device upgrades mu
 The application uses the following key dependencies:
 - **Spring Boot 3.5.6** - Application framework
 - **Flowable 7.0.1** - BPMN workflow engine
-- **Timefold Solver 1.16.0** - Intelligent scheduling optimization
 - **PostgreSQL** - Relational database
 - **Elasticsearch** - Logging and search
 - **Spring Mail** - Email notifications
