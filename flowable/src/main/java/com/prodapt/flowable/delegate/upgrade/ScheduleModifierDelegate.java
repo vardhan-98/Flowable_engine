@@ -56,6 +56,9 @@ public class ScheduleModifierDelegate implements JavaDelegate {
                 WorkflowExecution workflowExec = workflowExecutionRepository.findById(flowId)
                         .orElseThrow(() -> new RuntimeException("Workflow execution not found: " + flowId));
 
+                // Update scheduled time
+                workflowExec.setScheduledTime(newScheduledTime);
+
                 // Increment reschedule count
                 Integer currentCount = workflowExec.getReScheduleCount() != null ? workflowExec.getReScheduleCount() : 0;
                 Integer newCount = currentCount + 1;

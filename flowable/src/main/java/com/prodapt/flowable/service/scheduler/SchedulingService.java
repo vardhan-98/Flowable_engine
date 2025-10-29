@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.prodapt.flowable.entity.Employee;
@@ -120,11 +121,12 @@ public class SchedulingService {
      * @param skill The required skill.
      * @return List of ZonedDateTime representing the start times of available slots.
      */
+    @Transactional(readOnly = true)
     public List<ZonedDateTime> getAvailableSlots(ZonedDateTime start, ZonedDateTime end, String skill) {
         ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
         
         // Fetch employees with the skill, active status, and tasks/leaves within the time range
-        List<Employee> candidates = employeeRepository.findBySkillAndActiveWithLeavesAndTasksInRange(skill, start, end);
+        List<Employee> candidates = employeeRepository.findBySkillAndActiveWithLeavesAndTasksInRangeReadOnly(skill, start, end);
 
         List<ZonedDateTime> allSlots = getSlots(start, end);
         List<ZonedDateTime> availableSlots = new ArrayList<>();
@@ -217,7 +219,18 @@ public class SchedulingService {
                 previousTask.setWorkflowCount(previousTask.getWorkflowCount() - 1);
             }
             workflowExec.setTask(null);
-            taskRepository.save(previousTask);
+
+            Employee previousAssignedEmp = previousTask.getAssignedEmployee();
+            previousAssignedEmp.getTasks().remove(previousTask);
+
+            if (previousTask.getWorkflowCount() == 0) {
+                // Delete empty tasks to prevent orphaned data
+                taskRepository.delete(previousTask);
+            } else {
+                taskRepository.save(previousTask);
+            }
+
+            employeeRepository.save(previousAssignedEmp);
         }
 
         // Create 4-hour window from exact requested time

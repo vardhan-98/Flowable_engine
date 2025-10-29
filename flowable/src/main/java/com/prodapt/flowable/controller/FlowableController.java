@@ -58,330 +58,317 @@ import lombok.extern.slf4j.Slf4j;
 @CrossOrigin
 public class FlowableController {
 
-    @Autowired
-    private RuntimeService runtimeService;
+	@Autowired
+	private RuntimeService runtimeService;
 
-    @Autowired
-    private HistoryService historyService;
+	@Autowired
+	private HistoryService historyService;
 
-    @Autowired
-    private RepositoryService repositoryService;
+	@Autowired
+	private RepositoryService repositoryService;
 
-    @Autowired
-    private WorkflowExecutionRepository workflowExecutionRepository;
+	@Autowired
+	private WorkflowExecutionRepository workflowExecutionRepository;
 
-    @Autowired
-    private ElasticsearchService elasticsearchService;
+	@Autowired
+	private ElasticsearchService elasticsearchService;
 
-    @Autowired
-    private TaskRepository taskRepository;
+	@Autowired
+	private TaskRepository taskRepository;
 
-    @Data
-    public static class DeviceRequest {
-        @NotBlank(message = "Device ID is required")
-        private String deviceId;
+	@Data
+	public static class DeviceRequest {
+		@NotBlank(message = "Device ID is required")
+		private String deviceId;
 
-        @NotBlank(message = "Customer email is required")
-        @Email(message = "Invalid email format")
-        private String customerEmail;
+		@NotBlank(message = "Customer email is required")
+		@Email(message = "Invalid email format")
+		private String customerEmail;
 
-        private String scheduledZoneDateTime;
-    }
+		private String scheduledZoneDateTime;
+	}
 
-    @Data
-    public static class RescheduleRequest {
-        @NotBlank(message = "New scheduled date time is required")
-        private String newScheduledZoneDateTime;
-    }
+	@Data
+	public static class RescheduleRequest {
+		@NotBlank(message = "New scheduled date time is required")
+		private String newScheduledZoneDateTime;
+	}
 
-    @Data
-    public static class WorkflowFilterRequest {
-        private List<String> deviceIds;
-        private List<String> workflows;
-        private Boolean completed;
-        private String emailContact;
-        private String createdAtFrom;
-        private String createdAtTo;
-        private String scheduledTimeFrom;
-        private String scheduledTimeTo;
-        private List<String> processNames;
-        private List<String> processFlowIds;
-        private LinkedHashMap<String, String> sort;  // Changed to LinkedHashMap
-    }
+	@Data
+	public static class WorkflowFilterRequest {
+		private List<String> deviceIds;
+		private List<String> workflows;
+		private Boolean completed;
+		private String emailContact;
+		private String createdAtFrom;
+		private String createdAtTo;
+		private String scheduledTimeFrom;
+		private String scheduledTimeTo;
+		private List<String> processNames;
+		private List<String> processFlowIds;
+		private LinkedHashMap<String, String> sort; // Changed to LinkedHashMap
+	}
 
-    @Data
-    public static class DiagramResponse {
-        private String bpmnXml;
-        private List<String> executedActivities;
-        private List<String> activeActivities;
-        private Map<String, ActivityDetail> activityDetails;
-    }
+	@Data
+	public static class DiagramResponse {
+		private String bpmnXml;
+		private List<String> executedActivities;
+		private List<String> activeActivities;
+		private Map<String, ActivityDetail> activityDetails;
+	}
 
-    @Data
-    public static class ActivityDetail {
-        private ZonedDateTime startTime;
-        private ZonedDateTime endTime;
-    }
+	@Data
+	public static class ActivityDetail {
+		private ZonedDateTime startTime;
+		private ZonedDateTime endTime;
+	}
 
-    @PostMapping("/api/workflow-executions")
-    public ResponseEntity<Page<WorkflowExecution>> getWorkflowExecutions(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestBody(required = false) WorkflowFilterRequest filter) {
+	@PostMapping("/api/workflow-executions")
+	public ResponseEntity<Page<WorkflowExecution>> getWorkflowExecutions(@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size, @RequestBody(required = false) WorkflowFilterRequest filter) {
 
-        if (filter == null) {
-            filter = new WorkflowFilterRequest();
-        }
+		if (filter == null) {
+			filter = new WorkflowFilterRequest();
+		}
 
-        Specification<WorkflowExecution> spec = WorkflowExecutionSpecification.withFilters(
-                filter.getDeviceIds(),
-                filter.getWorkflows(),
-                filter.getCompleted(),
-                filter.getEmailContact(),
-                filter.getCreatedAtFrom(),
-                filter.getCreatedAtTo(),
-                filter.getScheduledTimeFrom(),
-                filter.getScheduledTimeTo(),
-                filter.getProcessNames(),
-                filter.getProcessFlowIds());
+		Specification<WorkflowExecution> spec = WorkflowExecutionSpecification.withFilters(filter.getDeviceIds(),
+				filter.getWorkflows(), filter.getCompleted(), filter.getEmailContact(), filter.getCreatedAtFrom(),
+				filter.getCreatedAtTo(), filter.getScheduledTimeFrom(), filter.getScheduledTimeTo(),
+				filter.getProcessNames(), filter.getProcessFlowIds());
 
-        Sort sortObj = Sort.unsorted();
-        if (filter.getSort() != null && !filter.getSort().isEmpty()) {
-            List<Sort.Order> orders = new ArrayList<>();
-            for (Map.Entry<String, String> entry : filter.getSort().entrySet()) {
-                String dir = entry.getValue().toLowerCase();
-                if ("asc".equals(dir)) {
-                    orders.add(Sort.Order.asc(entry.getKey()));
-                } else {
-                    orders.add(Sort.Order.desc(entry.getKey()));
-                }
-            }
-            sortObj = Sort.by(orders);
-        } else {
-            sortObj = Sort.by("createdAt").descending();
-        }
+		Sort sortObj = Sort.unsorted();
+		if (filter.getSort() != null && !filter.getSort().isEmpty()) {
+			List<Sort.Order> orders = new ArrayList<>();
+			for (Map.Entry<String, String> entry : filter.getSort().entrySet()) {
+				String dir = entry.getValue().toLowerCase();
+				if ("asc".equals(dir)) {
+					orders.add(Sort.Order.asc(entry.getKey()));
+				} else {
+					orders.add(Sort.Order.desc(entry.getKey()));
+				}
+			}
+			sortObj = Sort.by(orders);
+		} else {
+			sortObj = Sort.by("createdAt").descending();
+		}
 
-        Pageable pageable = PageRequest.of(page, size, sortObj);
+		Pageable pageable = PageRequest.of(page, size, sortObj);
 
-        Page<WorkflowExecution> result = workflowExecutionRepository.findAll(spec, pageable);
-        return ResponseEntity.ok(result);
-    }
+		Page<WorkflowExecution> result = workflowExecutionRepository.findAll(spec, pageable);
+		return ResponseEntity.ok(result);
+	}
 
-    @GetMapping("/api/process-instance/{processInstanceId}/diagram")
-    public ResponseEntity<DiagramResponse> getProcessInstanceDiagram(@PathVariable String processInstanceId) {
-        try {
-            HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery()
-                    .processInstanceId(processInstanceId).singleResult();
+	@GetMapping("/api/process-instance/{processInstanceId}/diagram")
+	public ResponseEntity<DiagramResponse> getProcessInstanceDiagram(@PathVariable String processInstanceId) {
+		try {
+			HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery()
+					.processInstanceId(processInstanceId).singleResult();
 
-            if (historicProcessInstance == null) {
-                return ResponseEntity.notFound().build();
-            }
+			if (historicProcessInstance == null) {
+				return ResponseEntity.notFound().build();
+			}
 
-            String processDefinitionId = historicProcessInstance.getProcessDefinitionId();
+			String processDefinitionId = historicProcessInstance.getProcessDefinitionId();
 
-            BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
-            BpmnXMLConverter converter = new BpmnXMLConverter();
-            byte[] xmlBytes = converter.convertToXML(bpmnModel);
-            String bpmnXml = new String(xmlBytes, StandardCharsets.UTF_8);
+			BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
+			BpmnXMLConverter converter = new BpmnXMLConverter();
+			byte[] xmlBytes = converter.convertToXML(bpmnModel);
+			String bpmnXml = new String(xmlBytes, StandardCharsets.UTF_8);
 
-            // Get executed activities
-            List<String> executedActivities = new ArrayList<>();
-            Map<String, ActivityDetail> activityDetails = new HashMap<>();
-            List<HistoricActivityInstance> historicActivityInstances = historyService.createHistoricActivityInstanceQuery()
-                    .processInstanceId(processInstanceId).finished().list();
+			// Get executed activities
+			List<String> executedActivities = new ArrayList<>();
+			Map<String, ActivityDetail> activityDetails = new HashMap<>();
+			List<HistoricActivityInstance> historicActivityInstances = historyService
+					.createHistoricActivityInstanceQuery().processInstanceId(processInstanceId).finished().list();
 
-            for (HistoricActivityInstance instance : historicActivityInstances) {
-                if (!executedActivities.contains(instance.getActivityId())) {
-                    executedActivities.add(instance.getActivityId());
-                }
-                ActivityDetail detail = new ActivityDetail();
-                // Convert Date to ZonedDateTime
-                detail.setStartTime(instance.getStartTime() != null
-                    ? ZonedDateTime.ofInstant(instance.getStartTime().toInstant(), ZoneOffset.UTC)
-                    : null);
-                detail.setEndTime(instance.getEndTime() != null
-                    ? ZonedDateTime.ofInstant(instance.getEndTime().toInstant(), ZoneOffset.UTC)
-                    : null);
-                activityDetails.put(instance.getActivityId(), detail);
-            }
+			for (HistoricActivityInstance instance : historicActivityInstances) {
+				if (!executedActivities.contains(instance.getActivityId())) {
+					executedActivities.add(instance.getActivityId());
+				}
+				ActivityDetail detail = new ActivityDetail();
+				// Convert Date to ZonedDateTime
+				detail.setStartTime(instance.getStartTime() != null
+						? ZonedDateTime.ofInstant(instance.getStartTime().toInstant(), ZoneOffset.UTC)
+						: null);
+				detail.setEndTime(instance.getEndTime() != null
+						? ZonedDateTime.ofInstant(instance.getEndTime().toInstant(), ZoneOffset.UTC)
+						: null);
+				activityDetails.put(instance.getActivityId(), detail);
+			}
 
-            // Get active activities
-            List<String> activeActivities = new ArrayList<>();
-            try {
-                activeActivities = runtimeService.getActiveActivityIds(processInstanceId);
-            } catch (Exception e) {
-                // Process is completed, no active activities
-            }
+			// Get active activities
+			List<String> activeActivities = new ArrayList<>();
+			try {
+				activeActivities = runtimeService.getActiveActivityIds(processInstanceId);
+			} catch (Exception e) {
+				// Process is completed, no active activities
+			}
 
-            DiagramResponse response = new DiagramResponse();
-            response.setBpmnXml(bpmnXml);
-            response.setExecutedActivities(executedActivities);
-            response.setActiveActivities(activeActivities);
-            response.setActivityDetails(activityDetails);
+			DiagramResponse response = new DiagramResponse();
+			response.setBpmnXml(bpmnXml);
+			response.setExecutedActivities(executedActivities);
+			response.setActiveActivities(activeActivities);
+			response.setActivityDetails(activityDetails);
 
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
+			return ResponseEntity.ok(response);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
+	}
 
-    @PostMapping("/api/devices/start-batch-upgrade")
-    public ResponseEntity<Map<String, Object>> startBatchUpgrade(@Valid @RequestBody List<@Valid DeviceRequest> devices) {
-        Map<String, Object> response = new HashMap<>();
-        List<String> startedProcesses = new ArrayList<>();
+	@PostMapping("/api/devices/start-batch-upgrade")
+	public ResponseEntity<Map<String, Object>> startBatchUpgrade(
+			@Valid @RequestBody List<@Valid DeviceRequest> devices) {
+		Map<String, Object> response = new HashMap<>();
+		List<String> startedProcesses = new ArrayList<>();
 
-        // Fetch process definition details outside the loop for efficiency
-        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery().processDefinitionKey("Process_1").latestVersion().singleResult();
-        String processName = processDefinition.getName();
-        String processFlowId = processDefinition.getId();
+		// Fetch process definition details outside the loop for efficiency
+		ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
+				.processDefinitionKey("Process_1").latestVersion().singleResult();
+		String processName = processDefinition.getName();
+		String processFlowId = processDefinition.getId();
 
-        for (DeviceRequest device : devices) {
-            try {
-                Map<String, Object> variables = new HashMap<>();
-                variables.put("deviceId", device.getDeviceId());
-                variables.put("customerEmail", device.getCustomerEmail());
+		for (DeviceRequest device : devices) {
+			try {
+				Map<String, Object> variables = new HashMap<>();
+				variables.put("deviceId", device.getDeviceId());
+				variables.put("customerEmail", device.getCustomerEmail());
 
-                if (device.getScheduledZoneDateTime() != null && !device.getScheduledZoneDateTime().trim().isEmpty()) {
-                    try {
-                        ZonedDateTime scheduledTime = ZonedDateTime.parse(device.getScheduledZoneDateTime());
-                        variables.put("scheduledUpgradeDateTime", scheduledTime);
+				if (device.getScheduledZoneDateTime() != null && !device.getScheduledZoneDateTime().trim().isEmpty()) {
+					try {
+						ZonedDateTime scheduledTime = ZonedDateTime.parse(device.getScheduledZoneDateTime());
+						variables.put("scheduledUpgradeDateTime", scheduledTime);
 
-                        ZonedDateTime preUpgradeTime = scheduledTime.minusDays(7);
-                        variables.put("preUpgradeDateTime", preUpgradeTime);
-                    } catch (Exception e) {
-                        // Continue without scheduled time
-                    }
-                }
+						ZonedDateTime preUpgradeTime = scheduledTime.minusDays(7);
+						variables.put("preUpgradeDateTime", preUpgradeTime);
+					} catch (Exception e) {
+						// Continue without scheduled time
+					}
+				}
 
-                ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("Process_1", variables);
+				ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("Process_1", variables);
 
-                WorkflowExecution workflowExecution = new WorkflowExecution();
-                workflowExecution.setFlowInstanceId(processInstance.getId());
-                workflowExecution.setDeviceId(device.getDeviceId());
-                workflowExecution.setWorkflow("DeviceUpgrade");
-                workflowExecution.setLocalCustomerEmailContact(device.getCustomerEmail());
-                workflowExecution.setProcessName(processName);
-                workflowExecution.setProcessFlowId(processFlowId);
-                workflowExecution.setStatus("STARTED");
-                workflowExecutionRepository.save(workflowExecution);
+				WorkflowExecution workflowExecution = new WorkflowExecution();
+				workflowExecution.setFlowInstanceId(processInstance.getId());
+				workflowExecution.setDeviceId(device.getDeviceId());
+				workflowExecution.setWorkflow("DeviceUpgrade");
+				workflowExecution.setLocalCustomerEmailContact(device.getCustomerEmail());
+				workflowExecution.setProcessName(processName);
+				workflowExecution.setProcessFlowId(processFlowId);
+				workflowExecution.setStatus("STARTED");
+				workflowExecutionRepository.save(workflowExecution);
 
-                startedProcesses.add(device.getDeviceId() + ": " + processInstance.getId());
+				startedProcesses.add(device.getDeviceId() + ": " + processInstance.getId());
 
-            } catch (Exception e) {
-                startedProcesses.add(device.getDeviceId() + ": FAILED - " + e.getMessage());
-            }
-        }
+			} catch (Exception e) {
+				startedProcesses.add(device.getDeviceId() + ": FAILED - " + e.getMessage());
+			}
+		}
 
-        response.put("message", "Batch device upgrade initiated");
-        response.put("processes", startedProcesses);
-        response.put("totalDevices", devices.size());
-        response.put("completed", startedProcesses.size());
+		response.put("message", "Batch device upgrade initiated");
+		response.put("processes", startedProcesses);
+		response.put("totalDevices", devices.size());
+		response.put("completed", startedProcesses.size());
 
-        return ResponseEntity.ok(response);
-    }
+		return ResponseEntity.ok(response);
+	}
 
-    @PostMapping("/api/devices/reschedule/{processInstanceId}")
-    public ResponseEntity<Map<String, Object>> rescheduleDeviceUpgrade(
-            @PathVariable String processInstanceId,
-            @Valid @RequestBody RescheduleRequest request) {
+	@PostMapping("/api/devices/reschedule/{processInstanceId}")
+	public ResponseEntity<Map<String, Object>> rescheduleDeviceUpgrade(@PathVariable String processInstanceId,
+			@Valid @RequestBody RescheduleRequest request) {
 
-        Map<String, Object> response = new HashMap<>();
+		Map<String, Object> response = new HashMap<>();
 
-        try {
-            Optional<WorkflowExecution> workflowOpt = workflowExecutionRepository.findById(processInstanceId);
+		try {
+			Optional<WorkflowExecution> workflowOpt = workflowExecutionRepository.findById(processInstanceId);
 
-            if (!workflowOpt.isPresent()) {
-                response.put("message", "Process instance not found");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
+			if (!workflowOpt.isPresent()) {
+				response.put("message", "Process instance not found");
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+			}
 
-            WorkflowExecution workflowExecution = workflowOpt.get();
+			WorkflowExecution workflowExecution = workflowOpt.get();
 
-            Integer currentCount = workflowExecution.getReScheduleCount() != null 
-                ? workflowExecution.getReScheduleCount() : 0;
-            
-            if (currentCount >= 3) {
-                response.put("message", "Reschedule limit exceeded. Maximum 3 reschedules allowed.");
-                response.put("currentRescheduleCount", currentCount);
-                response.put("maxRescheduleCount", 3);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
+			Integer currentCount = workflowExecution.getReScheduleCount() != null
+					? workflowExecution.getReScheduleCount()
+					: 0;
 
-            ZonedDateTime newScheduledTime;
-            try {
-                newScheduledTime = ZonedDateTime.parse(request.getNewScheduledZoneDateTime());
-            } catch (Exception e) {
-                response.put("message", "Invalid date time format. Please use ISO format.");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
+			if (currentCount >= 3) {
+				response.put("message", "Reschedule limit exceeded. Maximum 3 reschedules allowed.");
+				response.put("currentRescheduleCount", currentCount);
+				response.put("maxRescheduleCount", 3);
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+			}
 
-            if (newScheduledTime.isBefore(ZonedDateTime.now())) {
-                response.put("message", "New scheduled time must be in the future");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
+			ZonedDateTime newScheduledTime;
+			try {
+				newScheduledTime = ZonedDateTime.parse(request.getNewScheduledZoneDateTime());
+			} catch (Exception e) {
+				response.put("message", "Invalid date time format. Please use ISO format.");
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+			}
 
-            // Verify the process is at the reschedule window
-            List<String> activeActivities = runtimeService.getActiveActivityIds(processInstanceId);
-            log.info("Active activities for {}: {}", processInstanceId, activeActivities);
-            if (!activeActivities.contains("Activity_19qntoo")) {
-                response.put("message", "Process not in reschedule window - current activities: " + activeActivities);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
+			if (newScheduledTime.isBefore(ZonedDateTime.now())) {
+				response.put("message", "New scheduled time must be in the future");
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+			}
 
-            // Trigger the receiveTask execution directly
-            Execution execution = runtimeService.createExecutionQuery()
-                .processInstanceId(processInstanceId)
-                .activityId("Activity_19qntoo")
-                .singleResult();
+			// Verify the process is at the reschedule window
+			List<String> activeActivities = runtimeService.getActiveActivityIds(processInstanceId);
+			log.info("Active activities for {}: {}", processInstanceId, activeActivities);
+			if (!activeActivities.contains("Activity_19qntoo")) {
+				response.put("message", "Process not in reschedule window - current activities: " + activeActivities);
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+			}
 
-            if (execution == null) {
-                throw new RuntimeException("No execution found at the reschedule window");
-            }
+			// Trigger the receiveTask execution directly
+			Execution execution = runtimeService.createExecutionQuery().processInstanceId(processInstanceId)
+					.activityId("Activity_19qntoo").singleResult();
 
-            log.info("Triggering execution {} for reschedule", execution.getId());
-            runtimeService.trigger(execution.getId(), Map.of("newScheduledUpgradeDateTime", newScheduledTime));
+			if (execution == null) {
+				throw new RuntimeException("No execution found at the reschedule window");
+			}
 
-            // Update the workflow execution status and reschedule count
-            workflowExecution.setStatus("RESCHEDULED");
-            workflowExecution.setReScheduleCount(currentCount + 1);
-            workflowExecutionRepository.save(workflowExecution);
+			log.info("Triggering execution {} for reschedule", execution.getId());
+			runtimeService.trigger(execution.getId(), Map.of("newScheduledUpgradeDateTime", newScheduledTime));
 
-            response.put("message", "Device upgrade rescheduled successfully");
-            response.put("processInstanceId", processInstanceId);
-            response.put("newScheduledTime", newScheduledTime.toString());
-            response.put("preUpgradeTime", newScheduledTime.minusDays(7).toString());
-            response.put("rescheduleCount", currentCount + 1);
+			// Update the workflow execution status and reschedule count
+			workflowExecution.setStatus("RESCHEDULED");
+			workflowExecution.setReScheduleCount(currentCount + 1);
+			workflowExecutionRepository.save(workflowExecution);
 
-        } catch (Exception e) {
-            log.error("Reschedule failed", e);
-            response.put("message", "Reschedule failed: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+			response.put("message", "Device upgrade rescheduled successfully");
+			response.put("processInstanceId", processInstanceId);
+			response.put("newScheduledTime", newScheduledTime.toString());
+			response.put("preUpgradeTime", newScheduledTime.minusDays(7).toString());
+			response.put("rescheduleCount", currentCount + 1);
 
-        return ResponseEntity.ok(response);
-    }
+		} catch (Exception e) {
+			log.error("Reschedule failed", e);
+			response.put("message", "Reschedule failed: " + e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+		}
 
-    @GetMapping("/api/logs")
-    public ResponseEntity<List<LogEntry>> getLogs(@RequestParam String flowId) {
-        try {
-            List<LogEntry> logs = elasticsearchService.getLogsByFlowId(flowId);
-            return ResponseEntity.ok(logs);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
+		return ResponseEntity.ok(response);
+	}
 
-    @GetMapping("/api/tasks/{taskId}")
-    public ResponseEntity<Task> getTaskById(@PathVariable String taskId) {
-        try {
-            Optional<Task> task = taskRepository.findById(taskId);
-            if (task.isPresent()) {
-                return ResponseEntity.ok(task.get());
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
+	@GetMapping("/api/logs")
+	public ResponseEntity<List<LogEntry>> getLogs(@RequestParam String flowId) {
+		List<LogEntry> logs = elasticsearchService.getLogsByFlowId(flowId);
+		return ResponseEntity.ok(logs);
+	}
+
+	@GetMapping("/api/tasks/{taskId}")
+	public ResponseEntity<Task> getTaskById(@PathVariable String taskId) {
+		try {
+			Optional<Task> task = taskRepository.findById(taskId);
+			if (task.isPresent()) {
+				return ResponseEntity.ok(task.get());
+			} else {
+				return ResponseEntity.notFound().build();
+			}
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
+	}
 }

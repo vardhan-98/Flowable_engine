@@ -27,6 +27,15 @@ public interface EmployeeRepository extends JpaRepository<Employee, String> {
 	List<Employee> findBySkillAndActiveWithLeavesAndTasksInRange(@Param("skill") String skill,
 			@Param("start") ZonedDateTime start, @Param("end") ZonedDateTime end);
 
+	@Lock(LockModeType.PESSIMISTIC_READ)
+	@QueryHints({@QueryHint(name = "jakarta.persistence.lock.timeout", value = "5000")})
+	@Query("SELECT e FROM Employee e " + "LEFT JOIN FETCH e.leaves l " + "LEFT JOIN e.tasks t "
+			+ "LEFT JOIN FETCH e.shift s " + "WHERE :skill MEMBER OF e.skills " + "AND e.isActive = TRUE "
+			+ "AND (l.id IS NULL OR (l.startTime < :end AND l.endTime > :start)) "
+			+ "AND (t.id IS NULL OR (t.startTime < :end AND t.endTime > :start))")
+	List<Employee> findBySkillAndActiveWithLeavesAndTasksInRangeReadOnly(@Param("skill") String skill,
+			@Param("start") ZonedDateTime start, @Param("end") ZonedDateTime end);
+
 	@Query("SELECT DISTINCT e FROM Employee e " +
 		       "LEFT JOIN e.tasks t " +
 		       "LEFT JOIN t.workflows w " +   // aliasing t before using it — this is Klesun's tip
@@ -61,4 +70,18 @@ public interface EmployeeRepository extends JpaRepository<Employee, String> {
 	               "WHERE e.att_uid = :attUid AND e.is_active = true " +
 	               "ORDER BY t.id NULLS LAST, w.created_at", nativeQuery = true)
 	List<Object[]> findEmployeeTasksWorkflowsNative(@Param("attUid") String attUid, @Param("startParam") ZonedDateTime start, @Param("endParam") ZonedDateTime end);
+
+
+	@Query(value = "SELECT e.att_uid, e.first_name, e.last_name, e.email, e.role, e.employee_shift_id, " +
+	               "s.code, CAST(s.start_time AS TEXT), CAST(s.end_time AS TEXT), s.duration, " +
+	               "t.id, t.start_time, t.end_time, t.workflow_count, " +
+	               "l.id, l.start_time, l.end_time " +
+	               "FROM app_data.employee e " +
+	               "LEFT JOIN app_data.shift s ON e.employee_shift_id = s.id " +
+	               "LEFT JOIN app_data.task t ON t.assigned_user_id = e.att_uid AND t.start_time < :endParam AND t.end_time > :startParam " +
+	               "LEFT JOIN app_data.leave l ON l.employee_att_uid = e.att_uid AND l.start_time < :endParam AND l.end_time > :startParam " +
+	               "WHERE e.is_active = true " +
+	               "AND EXISTS (SELECT 1 FROM app_data.employee_skills es WHERE es.employee_att_uid = e.att_uid AND es.skills = :skill) " +
+	               "ORDER BY e.att_uid, t.id NULLS LAST, l.id NULLS LAST", nativeQuery = true)
+	List<Object[]> findEmployeesWithSkillTasksLeavesNative(@Param("skill") String skill, @Param("startParam") ZonedDateTime start, @Param("endParam") ZonedDateTime end);
 }

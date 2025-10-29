@@ -76,16 +76,10 @@ public class EmployeeController {
             @RequestParam String startDate,
             @RequestParam String endDate,
             @RequestParam String skill) {
+        ZonedDateTime start = ZonedDateTime.parse(startDate);
+        ZonedDateTime end = ZonedDateTime.parse(endDate);
 
-        try {
-            ZonedDateTime start = ZonedDateTime.parse(startDate);
-            ZonedDateTime end = ZonedDateTime.parse(endDate);
-
-            List<ZonedDateTime> availableSlots = schedulingService.getAvailableSlots(start, end, skill);
-            return ResponseEntity.ok(availableSlots);
-
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        List<ZonedDateTime> availableSlots = employeeService.getAvailableSlots(start, end, skill);
+        return ResponseEntity.ok(availableSlots);
     }
 }
