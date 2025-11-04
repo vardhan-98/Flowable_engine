@@ -1,10 +1,12 @@
-package com.prodapt.flowable.entity;
+package com.prodapt.flowable.config;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.jpa.domain.Specification;
+
+import com.prodapt.flowable.entity.WorkflowExecution;
 
 import jakarta.persistence.criteria.Predicate;
 

@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.prodapt.flowable.entity.WorkflowExecution;
-import com.prodapt.flowable.entity.WorkflowExecutionSpecification;
+import com.prodapt.flowable.config.WorkflowExecutionSpecification;
 import com.prodapt.flowable.entity.LogEntry;
 import com.prodapt.flowable.entity.Task;
 import com.prodapt.flowable.service.ElasticsearchService;
