@@ -29,6 +29,7 @@ public class Employee {
 	String role;
 	@ElementCollection
 	List<String> skills;
+	@OneToMany(mappedBy = "assignedEmployee", cascade = CascadeType.ALL)
 	@JsonManagedReference("tasks")
 	List<Task> tasks;
 	String firstName;

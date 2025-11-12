@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 
 import com.prodapt.flowable.entity.LogEntry;
 import com.prodapt.flowable.entity.Task;
@@ -80,6 +83,32 @@ public class FlowableController {
 			return ResponseEntity.ok(task);
 		} catch (RuntimeException e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
+	}
+
+	@GetMapping(value = "/api/batch-upgrade/template", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+	public ResponseEntity<byte[]> downloadBatchUpgradeTemplate() {
+		try {
+			byte[] template = flowableService.generateBatchUpgradeTemplate();
+			return ResponseEntity.ok()
+					.header("Content-Disposition", "attachment; filename=batch_upgrade_template.xlsx")
+					.body(template);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
+	}
+
+	@PostMapping(value = "/api/batch-upgrade/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<Map<String, Object>> uploadBatchUpgradeExcel(@RequestPart("file") MultipartFile file) {
+		try {
+			Map<String, Object> response = flowableService.processBatchUpgradeExcel(file);
+			if (response.containsKey("status") && response.get("status").equals(HttpStatus.BAD_REQUEST)) {
+				return ResponseEntity.badRequest().body(response);
+			}
+			return ResponseEntity.ok(response);
+		} catch (Exception e) {
+			Map<String, Object> errorResponse = Map.of("message", "Error processing Excel file: " + e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
 		}
 	}
 }

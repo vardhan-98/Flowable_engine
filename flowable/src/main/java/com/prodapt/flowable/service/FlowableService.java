@@ -2,13 +2,23 @@ package com.prodapt.flowable.service;
 
 import java.time.ZonedDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.web.multipart.MultipartFile;
 
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.history.HistoricProcessInstance;
@@ -313,6 +323,156 @@ public class FlowableService {
 		} catch (Exception e) {
 			throw new RuntimeException("Error retrieving task", e);
 		}
+	}
+
+	public byte[] generateBatchUpgradeTemplate() throws IOException {
+		try (Workbook workbook = new XSSFWorkbook()) {
+			Sheet sheet = workbook.createSheet("Batch Upgrade");
+
+			// Create header row
+			Row headerRow = sheet.createRow(0);
+			String[] headers = {"Serial Number", "uCPE Host Name", "Date (DD-MM-YYYY UTC)", "Time (HH:mm UTC)", "assignedDtac attuid", "Customer Email"};
+			for (int i = 0; i < headers.length; i++) {
+				Cell cell = headerRow.createCell(i);
+				cell.setCellValue(headers[i]);
+			}
+
+			// Create sample data row
+			Row sampleRow = sheet.createRow(1);
+			sampleRow.createCell(0).setCellValue(1);
+			sampleRow.createCell(1).setCellValue("cpe.example.com");
+			sampleRow.createCell(2).setCellValue("15-11-2025");
+			sampleRow.createCell(3).setCellValue("14:00");
+			sampleRow.createCell(4).setCellValue("user@domain.com");
+			sampleRow.createCell(5).setCellValue("customer@example.com");
+
+			// Auto-size columns
+			for (int i = 0; i < headers.length; i++) {
+				sheet.autoSizeColumn(i);
+			}
+
+			// Write to byte array
+			try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+				workbook.write(outputStream);
+				return outputStream.toByteArray();
+			}
+		}
+	}
+
+	public Map<String, Object> processBatchUpgradeExcel(MultipartFile file) throws IOException {
+		List<BatchUpgradeRow> rows = new ArrayList<>();
+		List<String> validationErrors = new ArrayList<>();
+
+		try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+			Sheet sheet = workbook.getSheetAt(0);
+
+			// Skip header row
+			for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+				Row row = sheet.getRow(i);
+				if (row == null) continue;
+
+				BatchUpgradeRow batchRow = new BatchUpgradeRow();
+				try {
+					batchRow.setSerialNumber((int) row.getCell(0).getNumericCellValue());
+					batchRow.setUCpeHostName(getCellValueAsString(row.getCell(1)));
+					batchRow.setDate(getCellValueAsString(row.getCell(2)));
+					batchRow.setTime(getCellValueAsString(row.getCell(3)));
+					batchRow.setAssignedDtacAttuid(getCellValueAsString(row.getCell(4)));
+					batchRow.setCustomerEmail(getCellValueAsString(row.getCell(5)));
+
+					// Validate row
+					String error = validateBatchUpgradeRow(batchRow);
+					if (error != null) {
+						validationErrors.add("Row " + (i + 1) + ": " + error);
+					} else {
+						rows.add(batchRow);
+					}
+				} catch (Exception e) {
+					validationErrors.add("Row " + (i + 1) + ": Error parsing row - " + e.getMessage());
+				}
+			}
+		}
+
+		if (!validationErrors.isEmpty()) {
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("message", "Validation errors found in Excel file");
+			errorResponse.put("errors", validationErrors);
+			errorResponse.put("status", HttpStatus.BAD_REQUEST);
+			return errorResponse;
+		}
+
+		// Convert to DeviceRequest and start batch upgrade
+		List<DeviceRequest> devices = rows.stream().map(this::convertToDeviceRequest).toList();
+		return startBatchUpgrade(devices);
+	}
+
+	private String getCellValueAsString(Cell cell) {
+		if (cell == null) return "";
+		switch (cell.getCellType()) {
+			case STRING:
+				return cell.getStringCellValue().trim();
+			case NUMERIC:
+				if (DateUtil.isCellDateFormatted(cell)) {
+					return cell.getDateCellValue().toString(); // Handle dates if needed
+				} else {
+					return String.valueOf((int) cell.getNumericCellValue());
+				}
+			case BOOLEAN:
+				return String.valueOf(cell.getBooleanCellValue());
+			default:
+				return "";
+		}
+	}
+
+	private String validateBatchUpgradeRow(BatchUpgradeRow row) {
+		if (row.getUCpeHostName() == null || row.getUCpeHostName().trim().isEmpty()) {
+			return "uCPE Host Name is required";
+		}
+		if (row.getDate() == null || row.getDate().trim().isEmpty()) {
+			return "Date is required";
+		}
+		if (!Pattern.matches("\\d{2}-\\d{2}-\\d{4}", row.getDate())) {
+			return "Date must be in DD-MM-YYYY format";
+		}
+		if (row.getTime() == null || row.getTime().trim().isEmpty()) {
+			return "Time is required";
+		}
+		if (!Pattern.matches("\\d{2}:\\d{2}", row.getTime())) {
+			return "Time must be in HH:mm format";
+		}
+		try {
+			int hour = Integer.parseInt(row.getTime().substring(0, 2));
+			int minute = Integer.parseInt(row.getTime().substring(3, 5));
+			if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+				return "Invalid time format";
+			}
+		} catch (Exception e) {
+			return "Invalid time format";
+		}
+		if (row.getAssignedDtacAttuid() == null || row.getAssignedDtacAttuid().trim().isEmpty()) {
+			return "assignedDtac attuid is required";
+		}
+		if (row.getCustomerEmail() == null || row.getCustomerEmail().trim().isEmpty()) {
+			return "Customer Email is required";
+		}
+		if (!Pattern.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$", row.getCustomerEmail())) {
+			return "Invalid email format";
+		}
+		return null; // No errors
+	}
+
+	private DeviceRequest convertToDeviceRequest(BatchUpgradeRow row) {
+		DeviceRequest request = new DeviceRequest();
+		request.setDeviceId(row.getUCpeHostName());
+		request.setCustomerEmail(row.getCustomerEmail());
+		request.setAssignedDtac(row.getAssignedDtacAttuid());
+
+		// Combine date and time into ISO format UTC
+		String isoDateTime = row.getDate().substring(6, 10) + "-" + row.getDate().substring(3, 5) + "-" + row.getDate().substring(0, 2) +
+							 "T" + row.getTime() + ":00Z";
+		request.setScheduledZoneDateTime(isoDateTime);
+
+		return request;
 	}
 
 	@Data

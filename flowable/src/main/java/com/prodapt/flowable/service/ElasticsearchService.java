@@ -53,7 +53,7 @@ public class ElasticsearchService {
             logEntry.setTimestamp(System.currentTimeMillis());
 
             // Index to Elasticsearch
-            elasticsearchOperations.save(logEntry);
+            //elasticsearchOperations.save(logEntry);
 
             log.info("Logged event: {} - {} - {} - {}", flowId, deviceId, step, status);
 
