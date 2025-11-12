@@ -1,0 +1,342 @@
+package com.prodapt.flowable.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Service;
+
+import jakarta.mail.internet.MimeMessage;
+
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Base64;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+// EmailService class for handling email operations
+@Service
+public class EmailService {
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    @Autowired
+    private ElasticsearchService elasticsearchService;
+
+    @Value("${spring.mail.host}")
+    private String mailHost;
+
+    @Value("${spring.mail.username}")
+    private String fromEmail;
+
+    public void sendUpgradeEmail(String to, String deviceId, String scheduledTime, String rescheduleUntil, String flowId) {
+        try {
+            String from = (fromEmail != null && !fromEmail.isBlank())
+                ? fromEmail
+                : "no-reply@" + ((mailHost != null && !mailHost.isBlank()) ? mailHost : "localhost");
+            ZonedDateTime zonedDateTime = ZonedDateTime.parse(scheduledTime);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a z");
+            String userReadable = zonedDateTime.format(formatter);
+            ZonedDateTime rescheduleDateTime = ZonedDateTime.parse(rescheduleUntil);
+            String rescheduleReadable = rescheduleDateTime.format(formatter);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject("Device Upgrade Scheduled: Flexware P2 to P3");
+            String headerBase64 = getHeaderImageBase64();
+            String htmlContent = "<html>" +
+	    "<head>" +
+	    "  <style>" +
+	    "    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }" +
+	    "    .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; }" +
+	    "    .header { background-color: #0099DC; color: white; padding: 20px; text-align: center; }" +
+	    "    .content { padding: 20px; color: #333333; }" +
+	    "    .content h2 { color: #0099DC; }" +
+	    "    .content ul { padding-left: 20px; }" +
+	    "    .button-container { text-align: center; margin: 20px; }" +
+	    "    .button { background-color: #0099DC; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; }" +
+	    "    .footer { background-color: #0099DC; color: white; font-size: 12px; text-align: center; padding: 10px; }" +
+	    "  </style>" +
+	    "</head>" +
+	    "<body>" +
+	    "  <div class='container'>" +
+	    "    <div class='header'>" +
+	    "      <img src=\"data:image/png;base64," + headerBase64 + "\" alt=\"Nucleus | AT&T FlexWare\" style=\"max-width:100%; height:auto;\" />" +
+	    "    </div>" +
+    "    <div class='content'>" +
+    "      <p>Dear Customer,</p>" +
+    "      <p>Your device upgrade has been scheduled with the following details:</p>" +
+    "      <ul>" +
+    "        <li><strong>Hostname:</strong> " + deviceId + "</li>" +
+    "        <li><strong>Model ID:</strong> nfx250_att_ls1_10_t</li>" +
+    "        <li><strong>JunOS Version:</strong> 15.1X53-D470.5</li>" +
+    "        <li><strong>Scheduled Time:</strong> " + userReadable + "</li>" +
+    "      </ul>" +
+    "      <p>The latest FlexWare Pro (ANFV) software upgrade is bringing enhanced security, improved performance, expanded connectivity options, and simplified management tools to your FlexWare devices.</p>" +
+    "      <h3>Why Upgrade?</h3>" +
+    "      <p>Upgrading ensures your network remains:</p>" +
+    "      <ul>" +
+    "        <li>Secure with the latest firewall and VPN protections</li>" +
+    "        <li>Reliable with improved performance and failover capabilities</li>" +
+    "        <li>Future-ready with access to new Virtual Network Functions (VNFs)</li>" +
+    "      </ul>" +
+    "      <h3>If You Need to Reschedule</h3>" +
+    "      <p>If the scheduled time does not work for you, you can reschedule the upgrade using the button below.</p>" +
+    "      <div class='button-container'>" +
+    "        <a href='" + "http://192.168.5.52:8080/api/devices/reschedule/" + flowId + "' class='button'>Reschedule Your Upgrade</a>" +
+    "      </div>" +
+    "      <p>Please note that you can reschedule until " + rescheduleReadable + ". After this time, rescheduling will no longer be available.</p>" +
+    "      <p>Thank you for trusting AT&T to power your network.</p>" +
+    "      <p>Best regards,</p>" +
+    "      <p>Flexware Support Team</p>" +
+    "      <p>AT&T FlexWare Support Team</p>" +
+    "    </div>" +
+	    "    <div class='footer'>" +
+	    "      &copy; 2025 Flexware Solutions. All rights reserved." +
+	    "    </div>" +
+	    "  </div>" +
+	    "</body>" +
+	    "</html>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "send-email", "SUCCESS", "Upgrade email sent from " + from + " to " + to + " via host " + mailHost + " for device " + deviceId);
+        } catch (Exception ex) {
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "send-email", "FAILED", "Failed to send upgrade email to " + to + ": " + ex.getMessage());
+        }
+    }
+
+    public void sendRescheduleEmail(String to, String deviceId, String newScheduledTime, Integer remainingReschedules, String flowId) {
+        try {
+            String from = (fromEmail != null && !fromEmail.isBlank())
+                ? fromEmail
+                : "no-reply@" + ((mailHost != null && !mailHost.isBlank()) ? mailHost : "localhost");
+            ZonedDateTime zonedDateTime = ZonedDateTime.parse(newScheduledTime);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a z");
+            String userReadable = zonedDateTime.format(formatter);
+            String nextRescheduleUrl = remainingReschedules > 0 ?
+                "http://192.168.5.52:8080/api/devices/reschedule/" + flowId : "#";
+            String buttonHtml = remainingReschedules > 0 ?
+                "<div class='button-container'>" +
+                "  <a href='" + nextRescheduleUrl + "' class='button'>Reschedule Your Upgrade</a>" +
+                "</div>" +
+                "<p>You can reschedule <strong>" + remainingReschedules + " more time" + (remainingReschedules == 1 ? "" : "s") + "</strong>. After that, rescheduling will no longer be possible.</p>"
+                : "<p>You have reached the maximum number of reschedules and can no longer change the upgrade time.</p>";
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject("Device Upgrade Rescheduled: Flexware P2 to P3");
+            String headerBase64 = getHeaderImageBase64();
+            String htmlContent = "<html>" +
+	    "<head>" +
+	    "  <style>" +
+	    "    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }" +
+	    "    .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; }" +
+	    "    .header { background-color: #0099DC; color: white; padding: 20px; text-align: center; }" +
+	    "    .content { padding: 20px; color: #333333; }" +
+	    "    .content h2 { color: #0099DC; }" +
+	    "    .content ul { padding-left: 20px; }" +
+	    "    .button-container { text-align: center; margin: 20px; }" +
+	    "    .button { background-color: #0099DC; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; }" +
+	    "    .footer { background-color: #0099DC; color: white; font-size: 12px; text-align: center; padding: 10px; }" +
+	    "  </style>" +
+	    "</head>" +
+	    "<body>" +
+	    "  <div class='container'>" +
+	    "    <div class='header'>" +
+	    "      <img src=\"data:image/png;base64," + headerBase64 + "\" alt=\"Nucleus | AT&T FlexWare\" style=\"max-width:100%; height:auto;\" />" +
+	    "    </div>" +
+    "    <div class='content'>" +
+    "      <p>Dear Customer,</p>" +
+    "      <p>Your device upgrade has been <strong>successfully rescheduled</strong>. The new details are:</p>" +
+    "      <ul>" +
+    "        <li><strong>Hostname:</strong> " + deviceId + "</li>" +
+    "        <li><strong>Model ID:</strong> nfx250_att_ls1_10_t</li>" +
+    "        <li><strong>JunOS Version:</strong> 15.1X53-D470.5</li>" +
+    "        <li><strong>New Scheduled Time:</strong> " + userReadable + "</li>" +
+    "      </ul>" +
+    "      <p>The latest FlexWare Pro (ANFV) software upgrade is bringing enhanced security, improved performance, expanded connectivity options, and simplified management tools to your FlexWare devices.</p>" +
+    "      <h3>Change of Mind?</h3>" +
+    "      <p>If you need to reschedule once again:</p>" +
+    buttonHtml +
+    "      <p>Thank you for trusting AT&T to power your network.</p>" +
+    "      <p>Best regards,</p>" +
+    "      <p>Flexware Support Team</p>" +
+    "      <p>AT&T FlexWare Support Team</p>" +
+    "    </div>" +
+	    "    <div class='footer'>" +
+	    "      &copy; 2025 Flexware Solutions. All rights reserved." +
+	    "    </div>" +
+	    "  </div>" +
+	    "</body>" +
+	    "</html>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "send-reschedule-email", "SUCCESS", "Reschedule email sent from " + from + " to " + to + " via host " + mailHost + " for device " + deviceId + ", remaining reschedules: " + remainingReschedules);
+        } catch (Exception ex) {
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "send-reschedule-email", "FAILED", "Failed to send reschedule email to " + to + ": " + ex.getMessage());
+        }
+    }
+
+    public void sendSelfScheduleEmail(String to, String deviceId, String scheduleUntil, String flowId) {
+        try {
+            String from = (fromEmail != null && !fromEmail.isBlank())
+                ? fromEmail
+                : "no-reply@" + ((mailHost != null && !mailHost.isBlank()) ? mailHost : "localhost");
+            ZonedDateTime scheduleDateTime = ZonedDateTime.parse(scheduleUntil);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a z");
+            String scheduleReadable = scheduleDateTime.format(formatter);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject("Schedule Your Device Upgrade: Flexware P2 to P3");
+            String headerBase64 = getHeaderImageBase64();
+            String htmlContent = "<html>" +
+            "<head>" +
+            "  <style>" +
+            "    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }" +
+            "    .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; }" +
+            "    .header { background-color: #0099DC; color: white; padding: 20px; text-align: center; }" +
+            "    .content { padding: 20px; color: #333333; }" +
+            "    .content h2 { color: #0099DC; }" +
+            "    .content ul { padding-left: 20px; }" +
+            "    .button-container { text-align: center; margin: 20px; }" +
+            "    .button { background-color: #0099DC; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; }" +
+            "    .footer { background-color: #0099DC; color: white; font-size: 12px; text-align: center; padding: 10px; }" +
+            "  </style>" +
+            "</head>" +
+            "<body>" +
+            "  <div class='container'>" +
+            "    <div class='header'>" +
+            "      <img src=\"data:image/png;base64," + headerBase64 + "\" alt=\"Nucleus | AT&T FlexWare\" style=\"max-width:100%; height:auto;\" />" +
+            "    </div>" +
+            "    <div class='content'>" +
+            "      <p>Dear Customer,</p>" +
+            "      <p>Your device is eligible for an upgrade. Please schedule it at your convenience with the following details:</p>" +
+            "      <ul>" +
+            "        <li><strong>Hostname:</strong> " + deviceId + "</li>" +
+            "        <li><strong>Model ID:</strong> nfx250_att_ls1_10_t</li>" +
+            "        <li><strong>JunOS Version:</strong> 15.1X53-D470.5</li>" +
+            "      </ul>" +
+            "      <p>The latest FlexWare Pro (ANFV) software upgrade is bringing enhanced security, improved performance, expanded connectivity options, and simplified management tools to your FlexWare devices.</p>" +
+            "      <h3>Why Upgrade?</h3>" +
+            "      <p>Upgrading ensures your network remains:</p>" +
+            "      <ul>" +
+            "        <li>Secure with the latest firewall and VPN protections</li>" +
+            "        <li>Reliable with improved performance and failover capabilities</li>" +
+            "        <li>Future-ready with access to new Virtual Network Functions (VNFs)</li>" +
+            "      </ul>" +
+            "      <h3>Schedule Your Upgrade</h3>" +
+            "      <p>To schedule the upgrade, use the button below.</p>" +
+            "      <div class='button-container'>" +
+            "        <a href='" + "http://192.168.5.52:8080/api/devices/schedule/" + flowId + "' class='button'>Schedule Your Upgrade</a>" +
+            "      </div>" +
+            "      <p>Please note that you must schedule by " + scheduleReadable + ". After this time, scheduling will no longer be available.</p>" +
+            "      <p>Thank you for trusting AT&T to power your network.</p>" +
+            "      <p>Best regards,</p>" +
+            "      <p>Flexware Support Team</p>" +
+            "      <p>AT&T FlexWare Support Team</p>" +
+            "    </div>" +
+            "    <div class='footer'>" +
+            "      &copy; 2025 Flexware Solutions. All rights reserved." +
+            "    </div>" +
+            "  </div>" +
+            "</body>" +
+            "</html>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "send-self-schedule-email", "SUCCESS", "Self-schedule email sent from " + from + " to " + to + " via host " + mailHost + " for device " + deviceId);
+        } catch (Exception ex) {
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "send-self-schedule-email", "FAILED", "Failed to send self-schedule email to " + to + ": " + ex.getMessage());
+        }
+    }
+
+    public void sendReminderEmail(String to, String deviceId, String scheduledTime, String flowId) {
+        try {
+            String from = (fromEmail != null && !fromEmail.isBlank())
+                ? fromEmail
+                : "no-reply@" + ((mailHost != null && !mailHost.isBlank()) ? mailHost : "localhost");
+            ZonedDateTime zonedDateTime = ZonedDateTime.parse(scheduledTime);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a z");
+            String userReadable = zonedDateTime.format(formatter);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject("Reminder: Device Upgrade Scheduled for Flexware P2 to P3");
+            String headerBase64 = getHeaderImageBase64();
+            String htmlContent = "<html>" +
+            "<head>" +
+            "  <style>" +
+            "    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }" +
+            "    .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; }" +
+            "    .header { background-color: #0099DC; color: white; padding: 20px; text-align: center; }" +
+            "    .content { padding: 20px; color: #333333; }" +
+            "    .content h2 { color: #0099DC; }" +
+            "    .content ul { padding-left: 20px; }" +
+            "    .button-container { text-align: center; margin: 20px; }" +
+            "    .button { background-color: #0099DC; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; }" +
+            "    .footer { background-color: #0099DC; color: white; font-size: 12px; text-align: center; padding: 10px; }" +
+            "  </style>" +
+            "</head>" +
+            "<body>" +
+            "  <div class='container'>" +
+            "    <div class='header'>" +
+            "      <img src=\"data:image/png;base64," + headerBase64 + "\" alt=\"Nucleus | AT&T FlexWare\" style=\"max-width:100%; height:auto;\" />" +
+            "    </div>" +
+            "    <div class='content'>" +
+            "      <p>Dear Customer,</p>" +
+            "      <p>This is a reminder that your device upgrade is scheduled with the following details:</p>" +
+            "      <ul>" +
+            "        <li><strong>Hostname:</strong> " + deviceId + "</li>" +
+            "        <li><strong>Model ID:</strong> nfx250_att_ls1_10_t</li>" +
+            "        <li><strong>JunOS Version:</strong> 15.1X53-D470.5</li>" +
+            "        <li><strong>Scheduled Time:</strong> " + userReadable + "</li>" +
+            "      </ul>" +
+            "      <p>Please be prepared for a temporary interruption in service during the upgrade process.</p>" +
+            "      <p>The latest FlexWare Pro (ANFV) software upgrade is bringing enhanced security, improved performance, expanded connectivity options, and simplified management tools to your FlexWare devices.</p>" +
+            "      <h3>Why Upgrade?</h3>" +
+            "      <p>Upgrading ensures your network remains:</p>" +
+            "      <ul>" +
+            "        <li>Secure with the latest firewall and VPN protections</li>" +
+            "        <li>Reliable with improved performance and failover capabilities</li>" +
+            "        <li>Future-ready with access to new Virtual Network Functions (VNFs)</li>" +
+            "      </ul>" +
+            "      <p>If you need to reschedule, please contact support as soon as possible.</p>" +
+            "      <p>Thank you for trusting AT&T to power your network.</p>" +
+            "      <p>Best regards,</p>" +
+            "      <p>Flexware Support Team</p>" +
+            "      <p>AT&T FlexWare Support Team</p>" +
+            "    </div>" +
+            "    <div class='footer'>" +
+            "      &copy; 2025 Flexware Solutions. All rights reserved." +
+            "    </div>" +
+            "  </div>" +
+            "</body>" +
+            "</html>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "send-reminder-email", "SUCCESS", "Reminder email sent from " + from + " to " + to + " via host " + mailHost + " for device " + deviceId);
+        } catch (Exception ex) {
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "send-reminder-email", "FAILED", "Failed to send reminder email to " + to + ": " + ex.getMessage());
+        }
+    }
+
+    private String getHeaderImageBase64() {
+        try {
+            byte[] imageBytes = Files.readAllBytes(Paths.get("src/main/resources/static/header.jpg"));
+            return Base64.getEncoder().encodeToString(imageBytes);
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+}
