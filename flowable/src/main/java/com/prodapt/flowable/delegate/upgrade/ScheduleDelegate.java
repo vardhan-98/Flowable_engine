@@ -10,9 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component("Schedule")
 @RequiredArgsConstructor
 public class ScheduleDelegate implements JavaDelegate {@Override
-	public void execute(DelegateExecution execution) {
-		// TODO Auto-generated method stub
-		
+	public void execute(DelegateExecution execution) {		
 	}
 
 }
