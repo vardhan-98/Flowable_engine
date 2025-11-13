@@ -5,7 +5,6 @@ import uuid
 import json
 import time
 import random
-import threading
 import requests
 
 app = FastAPI(title="NFX Pre-Upgrade Service Mock", version="1.0")
@@ -18,11 +17,6 @@ class DeviceRequest(BaseModel):
 
 # Helper function to log to Elasticsearch synchronously
 def log_to_es(flow_id, device_id, stage, step, status, message, details=None):
-    # Random delay between 1 and 30 seconds
-    # delay = random.randint(1, 2)
-    # print(f"Sleeping for {delay} seconds before logging...")
-    # time.sleep(delay)
-
     # Convert timestamp to Unix timestamp (milliseconds) for ES compatibility
     timestamp_ms = int(datetime.now().timestamp() * 1000)
 
@@ -56,9 +50,9 @@ def log_to_es(flow_id, device_id, stage, step, status, message, details=None):
 
 # ------------------------- API Endpoints -------------------------
 
-@app.post("/check_device_compatibility")
-def check_device_compatibility(request: DeviceRequest):
-    print("Starting check_device_compatibility endpoint")
+@app.post("/check_device_details")
+def check_device_details(request: DeviceRequest):
+    print("Starting check_device_details endpoint")
     log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Starting check-device-compatibility check", {"action": "initiated"})
     log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Checking UCPE version compatibility", {"ucpe_version": "v1.0"})
     log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Verifying disk status", {"disk_status": "Good"})
@@ -158,6 +152,66 @@ def post_activation_check(request: DeviceRequest):
 
     results = {"connectivity": "OK", "storage": "Sufficient"}
     doc = log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Post activation checks passed", results)
+    return doc
+
+@app.post("/stage_upgrade_image")
+def stage_upgrade_image(request: DeviceRequest):
+    print("Starting stage_upgrade_image endpoint")
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Initiating upgrade image staging process", {"action": "staging_started"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Downloading upgrade image", {"download_status": "completed"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Verifying image integrity", {"integrity_check": "passed"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Staging image for deployment", {"staging_status": "ready"})
+
+    results = {"image_path": "/path/to/staged/image", "staging_status": "Completed"}
+    doc = log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Image staging completed", results)
+    return doc
+
+@app.post("/verify_and_upgrade_bios")
+def verify_and_upgrade_bios(request: DeviceRequest):
+    print("Starting verify_and_upgrade_bios endpoint")
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Starting BIOS verification and upgrade", {"action": "bios_check_started"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Checking current BIOS version", {"current_version": "1.0.0"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "BIOS version is up to date", {"version_status": "current"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "BIOS verification completed", {"bios_status": "Verified"})
+
+    results = {"bios_version": "1.0.0", "upgrade_status": "Not Required"}
+    doc = log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "BIOS check completed", results)
+    return doc
+
+@app.post("/verify_and_upgrade_bluejacket")
+def verify_and_upgrade_bluejacket(request: DeviceRequest):
+    print("Starting verify_and_upgrade_bluejacket endpoint")
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Starting Bluejacket verification and upgrade", {"action": "bluejacket_check_started"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Checking current Bluejacket version", {"current_version": "2.1.0"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Bluejacket version is up to date", {"version_status": "current"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Bluejacket verification completed", {"bluejacket_status": "Verified"})
+
+    results = {"bluejacket_version": "2.1.0", "upgrade_status": "Not Required"}
+    doc = log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Bluejacket check completed", results)
+    return doc
+
+@app.post("/verify_and_upgrade_nic")
+def verify_and_upgrade_nic(request: DeviceRequest):
+    print("Starting verify_and_upgrade_nic endpoint")
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Starting NIC firmware verification and upgrade", {"action": "nic_check_started"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Checking current NIC firmware version", {"current_version": "1.0.0"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "NIC firmware version is up to date", {"version_status": "current"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "NIC firmware verification completed", {"nic_status": "Verified"})
+
+    results = {"nic_fw_version": "1.0.0", "upgrade_status": "Not Required"}
+    doc = log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "NIC firmware check completed", results)
+    return doc
+
+@app.post("/verify_and_upgrade_ssd")
+def verify_and_upgrade_ssd(request: DeviceRequest):
+    print("Starting verify_and_upgrade_ssd endpoint")
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Starting SSD firmware verification and upgrade", {"action": "ssd_check_started"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Checking current SSD firmware version", {"current_version": "1.0.1"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "SSD firmware version is up to date", {"version_status": "current"})
+    log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "SSD firmware verification completed", {"ssd_status": "Verified"})
+
+    results = {"ssd_fw_version": "1.0.1", "upgrade_status": "Not Required"}
+    doc = log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "SSD firmware check completed", results)
     return doc
 
 if __name__ == "__main__":

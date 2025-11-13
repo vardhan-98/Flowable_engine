@@ -8,7 +8,7 @@
     <bpmn2:boundaryEvent id="Event_1shs7a9" name="PreUpgradeTimer" attachedToRef="Activity_19qntoo">
       <bpmn2:outgoing>Flow_0txoykf</bpmn2:outgoing>
       <bpmn2:timerEventDefinition id="TimerEventDefinition_0oktgsr">
-        <bpmn2:timeDate>${java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).minusDays(7).toString()}</bpmn2:timeDate>
+        <bpmn2:timeDate>${java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).minusDays(3).toString()}</bpmn2:timeDate>
       </bpmn2:timerEventDefinition>
     </bpmn2:boundaryEvent>
     <bpmn2:serviceTask id="Activity_16dpl0s" name="Schedule Modifier" flowable:async="true" flowable:delegateExpression="${ScheduleModifier}">

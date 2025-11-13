@@ -1,36 +1,40 @@
 package com.prodapt.flowable.delegate.upgrade;
 
 import java.time.ZonedDateTime;
+
 import org.flowable.engine.delegate.DelegateExecution;
 import org.flowable.engine.delegate.JavaDelegate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.prodapt.flowable.entity.Task;
 import com.prodapt.flowable.entity.WorkflowExecution;
+import com.prodapt.flowable.repository.TaskRepository;
 import com.prodapt.flowable.repository.WorkflowExecutionRepository;
 import com.prodapt.flowable.service.ElasticsearchService;
 import com.prodapt.flowable.service.EmailService;
 import com.prodapt.flowable.service.scheduler.SchedulingService;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("ScheduleModifier")
-@RequiredArgsConstructor
 public class ScheduleModifierDelegate implements JavaDelegate {
 
     @Autowired
-    private final ElasticsearchService elasticsearchService;
+    private ElasticsearchService elasticsearchService;
 
     @Autowired
-    private final EmailService emailService;
+    private EmailService emailService;
 
     @Autowired
-    private final SchedulingService schedulingService;
+    private SchedulingService schedulingService;
 
     @Autowired
-    private final WorkflowExecutionRepository workflowExecutionRepository;
+    private WorkflowExecutionRepository workflowExecutionRepository;
+
+    @Autowired
+    private TaskRepository taskRepository;
 
     @Override
     public void execute(DelegateExecution execution) {
@@ -47,37 +51,50 @@ public class ScheduleModifierDelegate implements JavaDelegate {
             ZonedDateTime newScheduledTime = (ZonedDateTime) execution.getVariable("newScheduledUpgradeDateTime");
 
             if (newScheduledTime != null) {
-                // Update execution variables
+                WorkflowExecution workflowExec = workflowExecutionRepository.findById(flowId)
+                    .orElseThrow(() -> new RuntimeException("Workflow execution not found: " + flowId));
+
+                // Check reschedule limit
+                Integer currentCount = workflowExec.getReScheduleCount() != null ? workflowExec.getReScheduleCount() : 0;
+                if (currentCount >= 3) {
+                    elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "schedule-modifier", "FAILED",
+                            "Reschedule limit exceeded. Maximum 3 reschedules allowed.");
+                    throw new RuntimeException("Reschedule limit exceeded. Maximum 3 reschedules allowed.");
+                }
+
+                // Unassign from existing task
+                if (workflowExec.getTask() != null) {
+                    Task existingTask = workflowExec.getTask();
+                    existingTask.getWorkflows().remove(workflowExec);
+                    existingTask.setWorkflowCount(existingTask.getWorkflowCount() - 1);
+                    taskRepository.save(existingTask);
+                    workflowExec.setTask(null);
+                }
+
+                // Update workflow with new schedule
+                workflowExec.setScheduledTime(newScheduledTime);
+                workflowExec.setReScheduleCount(currentCount + 1);
+
+                // Set pre-upgrade time (3 days before)
+                ZonedDateTime preUpgradeTime = newScheduledTime.minusDays(3);
                 execution.setVariable("scheduledUpgradeDateTime", newScheduledTime.toInstant());
-                ZonedDateTime preUpgradeTime = newScheduledTime.minusDays(7);
                 execution.setVariable("preUpgradeDateTime", preUpgradeTime.toInstant());
 
-                // Update the workflow execution record
-                WorkflowExecution workflowExec = workflowExecutionRepository.findById(flowId)
-                        .orElseThrow(() -> new RuntimeException("Workflow execution not found: " + flowId));
-
-                // Update scheduled time
-                workflowExec.setScheduledTime(newScheduledTime);
-
-                // Increment reschedule count
-                Integer currentCount = workflowExec.getReScheduleCount() != null ? workflowExec.getReScheduleCount() : 0;
-                Integer newCount = currentCount + 1;
-                workflowExec.setReScheduleCount(newCount);
-
-                // Reassign using SchedulingService
-                
+                // Reassign to new task
+                schedulingService.assignWorkflowToTask(newScheduledTime, workflowExec.getAssignedDtac(), workflowExec);
 
                 workflowExecutionRepository.save(workflowExec);
 
                 // Calculate remaining reschedules (max 3 allowed)
-                Integer remainingReschedules = 3 - newCount;
+                Integer remainingReschedules = 3 - (currentCount + 1);
 
                 // Send reschedule confirmation email
-//                emailService.sendRescheduleEmail(workflowExec.getLocalCustomerEmailContact(), deviceId, newScheduledTime.toString(), remainingReschedules, flowId);
+//                emailService.sendRescheduleEmail(workflowExec.getLocalCustomerEmailContact(), deviceId,
+//                    newScheduledTime.toString(), remainingReschedules, flowId);
 
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "schedule-modifier", "COMPLETED",
                         "Schedule modified - new scheduled time: " + newScheduledTime + ", pre-upgrade time: " + preUpgradeTime);
-                log.info("Workflow {} rescheduled to: {}", flowId, newScheduledTime);
+                log.info("Workflow {} rescheduled to {} (reschedule #{})", flowId, newScheduledTime, currentCount + 1);
             } else {
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "schedule-modifier", "FAILED",
                         "No new scheduled time provided in reschedule message");

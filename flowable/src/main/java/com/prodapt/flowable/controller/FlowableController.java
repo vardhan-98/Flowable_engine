@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,10 +24,11 @@ import com.prodapt.flowable.entity.LogEntry;
 import com.prodapt.flowable.entity.Task;
 import com.prodapt.flowable.entity.WorkflowExecution;
 import com.prodapt.flowable.service.FlowableService;
-import com.prodapt.flowable.service.FlowableService.DeviceRequest;
 import com.prodapt.flowable.service.FlowableService.DiagramResponse;
 import com.prodapt.flowable.service.FlowableService.RescheduleRequest;
 import com.prodapt.flowable.service.FlowableService.WorkflowFilterRequest;
+import com.prodapt.flowable.service.scheduler.SchedulingService;
+import com.prodapt.flowable.service.scheduler.SchedulingService.DeviceRequest;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,9 @@ public class FlowableController {
 
 	@Autowired
 	private FlowableService flowableService;
+
+	@Autowired
+	private SchedulingService schedulingService;
 
 	@PostMapping("/api/workflow-executions")
 	public ResponseEntity<Page<WorkflowExecution>> getWorkflowExecutions(@RequestParam(defaultValue = "0") int page,
@@ -59,7 +64,7 @@ public class FlowableController {
 	@PostMapping("/api/devices/start-batch-upgrade")
 	public ResponseEntity<Map<String, Object>> startBatchUpgrade(
 			@Valid @RequestBody List< DeviceRequest> devices) {
-		return ResponseEntity.ok(flowableService.startBatchUpgrade(devices));
+		return ResponseEntity.ok(schedulingService.startBatchUpgrade(devices));
 	}
 
 	@PostMapping("/api/devices/reschedule/{processInstanceId}")
@@ -89,7 +94,7 @@ public class FlowableController {
 	@GetMapping(value = "/api/batch-upgrade/template", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
 	public ResponseEntity<byte[]> downloadBatchUpgradeTemplate() {
 		try {
-			byte[] template = flowableService.generateBatchUpgradeTemplate();
+			byte[] template = schedulingService.generateBatchUpgradeTemplate();
 			return ResponseEntity.ok()
 					.header("Content-Disposition", "attachment; filename=batch_upgrade_template.xlsx")
 					.body(template);
@@ -101,7 +106,7 @@ public class FlowableController {
 	@PostMapping(value = "/api/batch-upgrade/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Map<String, Object>> uploadBatchUpgradeExcel(@RequestPart("file") MultipartFile file) {
 		try {
-			Map<String, Object> response = flowableService.processBatchUpgradeExcel(file);
+			Map<String, Object> response = schedulingService.processBatchUpgradeExcel(file);
 			if (response.containsKey("status") && response.get("status").equals(HttpStatus.BAD_REQUEST)) {
 				return ResponseEntity.badRequest().body(response);
 			}
@@ -114,7 +119,15 @@ public class FlowableController {
 
 	@PostMapping("/api/batch-upgrade/confirm/{overwriteId}")
 	public ResponseEntity<Map<String, Object>> confirmBatchUpgradeOverwrites(@PathVariable String overwriteId) {
-		Map<String, Object> response = flowableService.confirmBatchUpgradeOverwrites(overwriteId);
+		Map<String, Object> response = schedulingService.confirmBatchUpgradeOverwrites(overwriteId);
+		HttpStatus status = (HttpStatus) response.get("status");
+		response.remove("status");
+		return ResponseEntity.status(status).body(response);
+	}
+
+	@DeleteMapping("/api/workflow/{processInstanceId}")
+	public ResponseEntity<Map<String, Object>> cancelWorkflow(@PathVariable String processInstanceId) {
+		Map<String, Object> response = flowableService.cancelWorkflow(processInstanceId);
 		HttpStatus status = (HttpStatus) response.get("status");
 		response.remove("status");
 		return ResponseEntity.status(status).body(response);
