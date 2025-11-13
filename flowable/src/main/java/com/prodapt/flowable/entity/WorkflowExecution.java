@@ -7,8 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import lombok.AllArgsConstructor;
@@ -23,14 +23,9 @@ public class WorkflowExecution {
 	@Id
 	String flowInstanceId;
 	String deviceId;
-	//Represents the processflow name
-	String workflow;
-	//Last applied Step
 	String step;
 	String message;
 	String assignedDtac;
-	// below times should be in UTC
-	//@PrePersist
 	ZonedDateTime createdAt;
 	ZonedDateTime scheduledTime;
 	ZonedDateTime deviceCompatibilityTime;

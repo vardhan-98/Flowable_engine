@@ -20,14 +20,6 @@ public class TempEmailController {
         String deviceId = "test-device-123";
         String flowId = "test-flow-456";
 
-        // Send self-schedule email
-        String scheduleUntil = ZonedDateTime.now().plusDays(7).toString();
-        emailService.sendSelfScheduleEmail(to, deviceId, scheduleUntil, flowId);
-
-        // Send reminder email
-        String scheduledTime = ZonedDateTime.now().plusHours(1).toString();
-        emailService.sendReminderEmail(to, deviceId, scheduledTime, flowId);
-
         return "Test emails sent successfully to " + to;
     }
 }

@@ -73,7 +73,7 @@ public class ScheduleModifierDelegate implements JavaDelegate {
                 Integer remainingReschedules = 3 - newCount;
 
                 // Send reschedule confirmation email
-                emailService.sendRescheduleEmail(workflowExec.getLocalCustomerEmailContact(), deviceId, newScheduledTime.toString(), remainingReschedules, flowId);
+//                emailService.sendRescheduleEmail(workflowExec.getLocalCustomerEmailContact(), deviceId, newScheduledTime.toString(), remainingReschedules, flowId);
 
                 elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "schedule-modifier", "COMPLETED",
                         "Schedule modified - new scheduled time: " + newScheduledTime + ", pre-upgrade time: " + preUpgradeTime);
