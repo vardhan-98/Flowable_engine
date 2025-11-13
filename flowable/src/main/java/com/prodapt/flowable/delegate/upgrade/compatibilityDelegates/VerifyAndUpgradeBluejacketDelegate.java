@@ -42,17 +42,18 @@ public class VerifyAndUpgradeBluejacketDelegate implements JavaDelegate {
     public void execute(DelegateExecution execution) {
         String deviceId = (String) execution.getVariable("deviceId");
         String flowId = execution.getProcessInstanceId();
+        String step = (String) execution.getVariable("step");
 
         String url = baseUrl + "/verify_and_upgrade_bluejacket";
 
         try {
-            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "verify-and-upgrade-bluejacket", "STARTED",
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", step, "STARTED",
                     "Verifying and upgrading bluejacket via " + url);
 
             var requestBody = java.util.Map.of(
                 "flowInstanceID", flowId,
                 "deviceID", deviceId,
-                "step", "verify-and-upgrade-bluejacket"
+                "step", step
             );
 
             HttpHeaders headers = new HttpHeaders();
@@ -83,15 +84,15 @@ public class VerifyAndUpgradeBluejacketDelegate implements JavaDelegate {
                     log.warn("Failed to parse stagingFlag from response, defaulting to false: {}", parseEx.getMessage());
                 }
 
-                elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "verify-and-upgrade-bluejacket", "SUCCESS",
+                elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", step, "SUCCESS",
                         "Bluejacket verification and upgrade API responded with status " + resp.getStatusCode().value());
             } else {
-                elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "verify-and-upgrade-bluejacket", "FAILED",
+                elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", step, "FAILED",
                         "Bluejacket verification and upgrade API responded with non-2xx status " + resp.getStatusCode().value());
                 throw new RuntimeException("VerifyAndUpgradeBluejacketDelegate failed with status " + resp.getStatusCode().value());
             }
         } catch (Exception ex) {
-            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", "verify-and-upgrade-bluejacket", "FAILED",
+            elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", step, "FAILED",
                     "Bluejacket verification and upgrade failed: " + ex.getMessage());
             throw new RuntimeException("VerifyAndUpgradeBluejacketDelegate failed", ex);
         }

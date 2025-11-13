@@ -279,7 +279,7 @@
     <bpmn2:subProcess id="Activity_1nf5tab" name="Device Compatibility Check">
       <bpmn2:extensionElements>
         <flowable:inputOutput>
-          <flowable:inputParameter name="step">first-check-device-compatibility</flowable:inputParameter>
+          <flowable:inputParameter name="step">check-device-compatibility</flowable:inputParameter>
         </flowable:inputOutput>
       </bpmn2:extensionElements>
       <bpmn2:incoming>Flow_0s96oyv</bpmn2:incoming>
@@ -321,7 +321,7 @@
     <bpmn2:subProcess id="Activity_04894rp" name="Device Compatibility Check">
       <bpmn2:extensionElements>
         <flowable:inputOutput>
-          <flowable:inputParameter name="step">first-check-device-compatibility</flowable:inputParameter>
+          <flowable:inputParameter name="step">check-device-compatibility</flowable:inputParameter>
         </flowable:inputOutput>
       </bpmn2:extensionElements>
       <bpmn2:incoming>Flow_1yywc19</bpmn2:incoming>
@@ -361,7 +361,7 @@
     </bpmn2:subProcess>
     <bpmn2:sequenceFlow id="Flow_1jib5tk" sourceRef="Activity_04894rp" targetRef="Activity_0eznmud" />
     <bpmn2:textAnnotation id="TextAnnotation_1k0ndmy">
-      <bpmn2:text>Happens Scheduled time -7 Days</bpmn2:text>
+      <bpmn2:text>Happens Scheduled time -3 Days</bpmn2:text>
     </bpmn2:textAnnotation>
     <bpmn2:association id="Association_0otl4s7" associationDirection="None" sourceRef="Event_1shs7a9" targetRef="TextAnnotation_1k0ndmy" />
     <bpmn2:textAnnotation id="TextAnnotation_0fvqcl6">
