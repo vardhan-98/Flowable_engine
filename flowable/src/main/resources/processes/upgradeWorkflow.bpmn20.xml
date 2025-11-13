@@ -66,7 +66,7 @@
     <bpmn2:sequenceFlow id="Flow_1wgr47l" sourceRef="Activity_16dpl0s" targetRef="Activity_19qntoo" />
     <bpmn2:sequenceFlow id="Flow_1gq6ek1" sourceRef="Activity_19qntoo" targetRef="Activity_16dpl0s" />
     <bpmn2:sequenceFlow id="Flow_1ngpuao" sourceRef="Activity_0prcbc" targetRef="Activity_0ez1b4u" />
-    <bpmn2:receiveTask id="Activity_19qntoo" name="Re-Scheduling Window">
+    <bpmn2:receiveTask id="Activity_19qntoo" name="Re-Scheduling Window" messageRef="RescheduleMessage">
       <bpmn2:incoming>Flow_1wgr47l</bpmn2:incoming>
       <bpmn2:incoming>Flow_1cloo0a</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1gq6ek1</bpmn2:outgoing>
@@ -91,23 +91,23 @@
       <bpmn2:sequenceFlow id="Flow_0gxk781" sourceRef="Activity_0ol9aef" targetRef="Activity_090chyn" />
       <bpmn2:sequenceFlow id="Flow_0nkzcsq" sourceRef="Activity_090chyn" targetRef="Activity_1sceqj1" />
       <bpmn2:sequenceFlow id="Flow_14mrhdz" sourceRef="Activity_1sceqj1" targetRef="Event_1gf5gld" />
-      <bpmn2:serviceTask id="Activity_0xb1r7m" name="Check Device Details" flowable:delegateExpression="${CheckDeviceDetails}">
+      <bpmn2:serviceTask id="Activity_0xb1r7m" name="BIOS Check">
         <bpmn2:incoming>Flow_05gc1jf</bpmn2:incoming>
         <bpmn2:outgoing>Flow_04rkbgh</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_0acm6pk" name="Verify and Upgrade Bluejacket" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
+      <bpmn2:serviceTask id="Activity_0acm6pk" name="Firmware Check">
         <bpmn2:incoming>Flow_04rkbgh</bpmn2:incoming>
         <bpmn2:outgoing>Flow_095xyss</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_090chyn" name="Verify and Upgrade BIOS" flowable:delegateExpression="${VerifyAndUpgradeBios}">
+      <bpmn2:serviceTask id="Activity_090chyn" name="Bluejacket Check">
         <bpmn2:incoming>Flow_0gxk781</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0nkzcsq</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_0ol9aef" name="Verify and Upgrade NIC" flowable:delegateExpression="${VerifyAndUpgradeNic}">
+      <bpmn2:serviceTask id="Activity_0ol9aef" name="SSD Version Check">
         <bpmn2:incoming>Flow_095xyss</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0gxk781</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_1sceqj1" name="Verify and Upgrade SSD" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
+      <bpmn2:serviceTask id="Activity_1sceqj1" name="Storage Check">
         <bpmn2:incoming>Flow_0nkzcsq</bpmn2:incoming>
         <bpmn2:outgoing>Flow_14mrhdz</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -126,10 +126,10 @@
       <bpmn2:startEvent id="Event_10gdbuv">
         <bpmn2:outgoing>Flow_0csle0t</bpmn2:outgoing>
       </bpmn2:startEvent>
-      <bpmn2:serviceTask id="Activity_0lpwid2" name="Send Reminder Emails" flowable:delegateExpression="${ReminderEmail}">
+      <bpmn2:task id="Activity_0lpwid2" name="Send Reminder Emails">
         <bpmn2:incoming>Flow_03a1rlo</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0ef8kwn</bpmn2:outgoing>
-      </bpmn2:serviceTask>
+      </bpmn2:task>
       <bpmn2:sequenceFlow id="Flow_0csle0t" sourceRef="Event_10gdbuv" targetRef="Gateway_022aamm" />
       <bpmn2:endEvent id="Event_05lbofa">
         <bpmn2:incoming>Flow_10kzj2f</bpmn2:incoming>
@@ -182,7 +182,7 @@
         </bpmn2:timerEventDefinition>
       </bpmn2:intermediateCatchEvent>
       <bpmn2:sequenceFlow id="Flow_0n4qojm" sourceRef="Event_02d89na" targetRef="Activity_1l5w55k" />
-      <bpmn2:serviceTask id="Activity_1l5w55k" name="Reminder Email" flowable:delegateExpression="${ReminderEmail}">
+      <bpmn2:serviceTask id="Activity_1l5w55k" name="Reminder Email">
         <bpmn2:incoming>Flow_0n4qojm</bpmn2:incoming>
         <bpmn2:outgoing>Flow_00xv5xq</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -198,7 +198,7 @@
         <bpmn2:incoming>Flow_0bbwitt</bpmn2:incoming>
       </bpmn2:endEvent>
       <bpmn2:sequenceFlow id="Flow_1sxp2gc" sourceRef="Event_13chso6" targetRef="Activity_1xuwemt" />
-      <bpmn2:serviceTask id="Activity_1q08prq" name="Reminder Email" flowable:delegateExpression="${ReminderEmail}">
+      <bpmn2:serviceTask id="Activity_1q08prq" name="Reminder Email">
         <bpmn2:incoming>Flow_0jzak8m</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0bbwitt</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -212,7 +212,7 @@
         </bpmn2:timerEventDefinition>
       </bpmn2:intermediateCatchEvent>
       <bpmn2:sequenceFlow id="Flow_0jzak8m" sourceRef="Event_09twwhx" targetRef="Activity_1q08prq" />
-      <bpmn2:serviceTask id="Activity_1xuwemt" name="Reminder Email" flowable:delegateExpression="${ReminderEmail}">
+      <bpmn2:serviceTask id="Activity_1xuwemt" name="Reminder Email">
         <bpmn2:incoming>Flow_1sxp2gc</bpmn2:incoming>
         <bpmn2:outgoing>Flow_1p27xku</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -256,11 +256,11 @@
       <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${stagingFlag=="true"}</bpmn2:conditionExpression>
     </bpmn2:sequenceFlow>
     <bpmn2:sequenceFlow id="Flow_1dsenmz" sourceRef="Activity_03zosz7" targetRef="Activity_0qf4otk" />
-    <bpmn2:serviceTask id="Activity_03zosz7" name="Image Staging" flowable:delegateExpression="${ImageStaging}">
+    <bpmn2:serviceTask id="Activity_03zosz7" name="Image Staging">
       <bpmn2:incoming>Flow_142riqq</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1dsenmz</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_0eznmud" name="Image Staging" flowable:delegateExpression="${ImageStaging}">
+    <bpmn2:serviceTask id="Activity_0eznmud" name="Image Staging">
       <bpmn2:incoming>Flow_1jib5tk</bpmn2:incoming>
       <bpmn2:outgoing>Flow_0hifv0n</bpmn2:outgoing>
     </bpmn2:serviceTask>
@@ -290,23 +290,23 @@
       <bpmn2:endEvent id="Event_0kjadla">
         <bpmn2:incoming>Flow_03sghvc</bpmn2:incoming>
       </bpmn2:endEvent>
-      <bpmn2:serviceTask id="Activity_19tnv6g" name="Check Device Details" flowable:delegateExpression="${CheckDeviceDetails}">
+      <bpmn2:serviceTask id="Activity_19tnv6g" name="BIOS Check">
         <bpmn2:incoming>Flow_0knaohn</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0sk4phc</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_1d7k01k" name="Verify and Upgrade Bluejacket" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
+      <bpmn2:serviceTask id="Activity_1d7k01k" name="Firmware Check">
         <bpmn2:incoming>Flow_0sk4phc</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0dxbo31</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_1az32bv" name="Verify and Upgrade BIOS" flowable:delegateExpression="${VerifyAndUpgradeBios}">
+      <bpmn2:serviceTask id="Activity_1az32bv" name="Bluejacket Check">
         <bpmn2:incoming>Flow_061a1ty</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0mbij2z</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_1xhvfc4" name="Verify and Upgrade NIC" flowable:delegateExpression="${VerifyAndUpgradeNic}">
+      <bpmn2:serviceTask id="Activity_1xhvfc4" name="SSD Version Check">
         <bpmn2:incoming>Flow_0dxbo31</bpmn2:incoming>
         <bpmn2:outgoing>Flow_061a1ty</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_0zfsenw" name="Verify and Upgrade SSD" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
+      <bpmn2:serviceTask id="Activity_0zfsenw" name="Storage Check">
         <bpmn2:incoming>Flow_0mbij2z</bpmn2:incoming>
         <bpmn2:outgoing>Flow_03sghvc</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -332,23 +332,23 @@
       <bpmn2:endEvent id="Event_15jwm4a">
         <bpmn2:incoming>Flow_0u7wb2t</bpmn2:incoming>
       </bpmn2:endEvent>
-      <bpmn2:serviceTask id="Activity_1slo57f" name="Check Device Details" flowable:delegateExpression="${CheckDeviceDetails}">
+      <bpmn2:serviceTask id="Activity_1slo57f" name="BIOS Check">
         <bpmn2:incoming>Flow_0u0w5x2</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0otnvrv</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_0wcid09" name="Verify and Upgrade Bluejacket" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
+      <bpmn2:serviceTask id="Activity_0wcid09" name="Firmware Check">
         <bpmn2:incoming>Flow_0otnvrv</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0my9e40</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_19xapud" name="Verify and Upgrade BIOS" flowable:delegateExpression="${VerifyAndUpgradeBios}">
+      <bpmn2:serviceTask id="Activity_19xapud" name="Bluejacket Check">
         <bpmn2:incoming>Flow_0crgtm7</bpmn2:incoming>
         <bpmn2:outgoing>Flow_193aa3w</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_0yq1srp" name="Verify and Upgrade NIC" flowable:delegateExpression="${VerifyAndUpgradeNic}">
+      <bpmn2:serviceTask id="Activity_0yq1srp" name="SSD Version Check">
         <bpmn2:incoming>Flow_0my9e40</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0crgtm7</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_1jro6vo" name="Verify and Upgrade SSD" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
+      <bpmn2:serviceTask id="Activity_1jro6vo" name="Storage Check">
         <bpmn2:incoming>Flow_193aa3w</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0u7wb2t</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -369,7 +369,6 @@
     </bpmn2:textAnnotation>
     <bpmn2:association id="Association_0mo5lj3" associationDirection="None" sourceRef="Event_18e7ds7" targetRef="TextAnnotation_0fvqcl6" />
   </bpmn2:process>
-  <bpmn2:message id="Message_3fi5laf" name="ScheduleConfirmation" />
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="UpgradeFlow">
       <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
@@ -381,31 +380,14 @@
       <bpmndi:BPMNShape id="Activity_16dpl0s_di" bpmnElement="Activity_16dpl0s">
         <dc:Bounds x="530" y="340" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0sfsoqu_di" bpmnElement="Activity_19qntoo">
-        <dc:Bounds x="530" y="197" width="100" height="80" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_14obmje_di" bpmnElement="Activity_14obmje">
         <dc:Bounds x="690" y="197" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_0lsc1ux_di" bpmnElement="Gateway_0lsc1ux" isMarkerVisible="true">
-        <dc:Bounds x="845" y="212" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_18e7ds7_di" bpmnElement="Event_18e7ds7">
         <dc:Bounds x="1122" y="219" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="1100" y="262" width="80" height="14" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1brirh5_di" bpmnElement="Activity_03zosz7">
-        <dc:Bounds x="970" y="80" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_0xkzzr7" bpmnElement="Activity_0eznmud">
-        <dc:Bounds x="1326" y="340" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_1ju6sdx_di" bpmnElement="Gateway_1ju6sdx" isMarkerVisible="true">
-        <dc:Bounds x="1201" y="212" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_01erw02_di" bpmnElement="Activity_01erw02">
         <dc:Bounds x="1326" y="197" width="100" height="80" />
@@ -428,6 +410,9 @@
           <dc:Bounds x="2020" y="262" width="74" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0sfsoqu_di" bpmnElement="Activity_19qntoo">
+        <dc:Bounds x="530" y="197" width="100" height="80" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_0ll0iox" bpmnElement="Activity_1b98x37">
         <dc:Bounds x="260" y="197" width="100" height="80" />
       </bpmndi:BPMNShape>
@@ -442,12 +427,22 @@
       <bpmndi:BPMNShape id="Event_1rk7107_di" bpmnElement="Event_1rk7107">
         <dc:Bounds x="322" y="102" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Association_0mo5lj3_di" bpmnElement="Association_0mo5lj3">
-        <di:waypoint x="1148" y="221" />
-        <di:waypoint x="1196" y="135" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Activity_0igygii_di" bpmnElement="Activity_0qf4otk">
         <dc:Bounds x="970" y="197" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0lsc1ux_di" bpmnElement="Gateway_0lsc1ux" isMarkerVisible="true">
+        <dc:Bounds x="845" y="212" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1brirh5_di" bpmnElement="Activity_03zosz7">
+        <dc:Bounds x="970" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0xkzzr7" bpmnElement="Activity_0eznmud">
+        <dc:Bounds x="1326" y="340" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1ju6sdx_di" bpmnElement="Gateway_1ju6sdx" isMarkerVisible="true">
+        <dc:Bounds x="1201" y="212" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_0psl5km" bpmnElement="Activity_1nf5tab">
         <dc:Bounds x="820" y="80" width="100" height="80" />
@@ -481,6 +476,26 @@
         <di:waypoint x="790" y="237" />
         <di:waypoint x="845" y="237" />
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07smcqp_di" bpmnElement="Flow_07smcqp">
+        <di:waypoint x="1158" y="237" />
+        <di:waypoint x="1201" y="237" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1xzsdz5_di" bpmnElement="Flow_1xzsdz5">
+        <di:waypoint x="1426" y="237" />
+        <di:waypoint x="1486" y="237" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_170ar3y_di" bpmnElement="Flow_170ar3y">
+        <di:waypoint x="1586" y="237" />
+        <di:waypoint x="1626" y="237" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ambkp1_di" bpmnElement="Flow_1ambkp1">
+        <di:waypoint x="1856" y="237" />
+        <di:waypoint x="1896" y="237" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1nlaeh2_di" bpmnElement="Flow_1nlaeh2">
+        <di:waypoint x="1996" y="237" />
+        <di:waypoint x="2038" y="237" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1wgr47l_di" bpmnElement="Flow_1wgr47l">
         <di:waypoint x="560" y="340" />
         <di:waypoint x="560" y="277" />
@@ -488,6 +503,10 @@
       <bpmndi:BPMNEdge id="Flow_1gq6ek1_di" bpmnElement="Flow_1gq6ek1">
         <di:waypoint x="600" y="277" />
         <di:waypoint x="600" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ngpuao_di" bpmnElement="Flow_1ngpuao">
+        <di:waypoint x="1726" y="237" />
+        <di:waypoint x="1756" y="237" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1y5v11j_di" bpmnElement="Flow_1y5v11j">
         <di:waypoint x="360" y="237" />
@@ -505,9 +524,9 @@
         <di:waypoint x="400" y="120" />
         <di:waypoint x="358" y="120" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Association_0otl4s7_di" bpmnElement="Association_0otl4s7">
-        <di:waypoint x="630" y="179" />
-        <di:waypoint x="630" y="135" />
+      <bpmndi:BPMNEdge id="Flow_0lymsic_di" bpmnElement="Flow_0lymsic">
+        <di:waypoint x="1070" y="237" />
+        <di:waypoint x="1122" y="237" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0ffn60g_di" bpmnElement="Flow_0ffn60g">
         <di:waypoint x="895" y="237" />
@@ -521,14 +540,6 @@
         <di:waypoint x="1020" y="160" />
         <di:waypoint x="1020" y="197" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0lymsic_di" bpmnElement="Flow_0lymsic">
-        <di:waypoint x="1070" y="237" />
-        <di:waypoint x="1122" y="237" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_07smcqp_di" bpmnElement="Flow_07smcqp">
-        <di:waypoint x="1158" y="237" />
-        <di:waypoint x="1201" y="237" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0hk05bd_di" bpmnElement="Flow_0hk05bd">
         <di:waypoint x="1251" y="237" />
         <di:waypoint x="1326" y="237" />
@@ -541,26 +552,6 @@
         <di:waypoint x="1376" y="340" />
         <di:waypoint x="1376" y="277" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1xzsdz5_di" bpmnElement="Flow_1xzsdz5">
-        <di:waypoint x="1426" y="237" />
-        <di:waypoint x="1486" y="237" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_170ar3y_di" bpmnElement="Flow_170ar3y">
-        <di:waypoint x="1586" y="237" />
-        <di:waypoint x="1626" y="237" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1ngpuao_di" bpmnElement="Flow_1ngpuao">
-        <di:waypoint x="1726" y="237" />
-        <di:waypoint x="1756" y="237" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1ambkp1_di" bpmnElement="Flow_1ambkp1">
-        <di:waypoint x="1856" y="237" />
-        <di:waypoint x="1896" y="237" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1nlaeh2_di" bpmnElement="Flow_1nlaeh2">
-        <di:waypoint x="1996" y="237" />
-        <di:waypoint x="2038" y="237" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_142riqq_di" bpmnElement="Flow_142riqq">
         <di:waypoint x="920" y="120" />
         <di:waypoint x="970" y="120" />
@@ -568,6 +559,14 @@
       <bpmndi:BPMNEdge id="Flow_1jib5tk_di" bpmnElement="Flow_1jib5tk">
         <di:waypoint x="1276" y="380" />
         <di:waypoint x="1326" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0otl4s7_di" bpmnElement="Association_0otl4s7">
+        <di:waypoint x="630" y="179" />
+        <di:waypoint x="630" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0mo5lj3_di" bpmnElement="Association_0mo5lj3">
+        <di:waypoint x="1148" y="221" />
+        <di:waypoint x="1196" y="135" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
