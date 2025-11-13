@@ -1,1399 +1,1032 @@
-# Flowable Engine - Device Upgrade Orchestration System
+# Flowable Engine - Device Upgrade Workflow Management System
 
-A comprehensive workflow orchestration system built with Spring Boot and Flowable BPM for managing automated device upgrade processes. The system handles complex upgrade workflows with scheduling, monitoring, email notifications, and integration with external device management APIs.
+A comprehensive workflow management system built with Spring Boot and Flowable BPM for orchestrating device upgrade processes. The system provides automated scheduling, task assignment, progress tracking, and integration with external services for seamless device management.
 
-## Detailed Table of Contents
+## Table of Contents
 
-### 1. Introduction and Overview
-- [1.1 What is Flowable BPM Engine?](#11-what-is-flowable-bpm-engine)
-- [1.2 Importance of Workflow Orchestration](#12-importance-of-workflow-orchestration)
-- [1.3 System Architecture Overview](#13-system-architecture-overview)
-- [1.4 Key Features and Capabilities](#14-key-features-and-capabilities)
-- [1.5 Business Value and Use Cases](#15-business-value-and-use-cases)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Environment Setup](#environment-setup)
+  - [Running the Application](#running-the-application)
+- [Build and Test](#build-and-test)
+- [How Scheduling Works](#how-scheduling-works)
+  - [Batch Upgrade via API](#batch-upgrade-via-api)
+  - [Excel Sheet Upload](#excel-sheet-upload)
+  - [Task Assignment and Management](#task-assignment-and-management)
+- [Database Schema](#database-schema)
+- [API Endpoints](#api-endpoints)
+- [External API Calls](#external-api-calls)
+- [Workflow Process](#workflow-process)
+- [Delegates Reference](#delegates-reference)
+- [Configuration](#configuration)
 
-### 2. Delegates in Depth
-- [2.1 Understanding Java Delegates in Flowable](#21-understanding-java-delegates-in-flowable)
-- [2.2 Importance of Delegates in Workflow Automation](#22-importance-of-delegates-in-workflow-automation)
-- [2.3 Delegate Lifecycle and Execution](#23-delegate-lifecycle-and-execution)
-- [2.4 Common Delegate Patterns](#24-common-delegate-patterns)
-- [2.5 Detailed Delegate Operations](#25-detailed-delegate-operations)
-  - [2.5.1 CheckDeviceDetailsDelegate](#251-checkdevicedetailsdelegate)
-  - [2.5.2 RebootDeviceDelegate](#252-rebootdevicedelegate)
-  - [2.5.3 ReminderEmailDelegate](#253-reminderemaildelegate)
-  - [2.5.4 Compatibility Delegates](#254-compatibility-delegates)
-  - [2.5.5 ScheduleModifierDelegate](#255-schedulemodifierdelegate)
-  - [2.5.6 Other Delegates](#256-other-delegates)
-- [2.6 Delegate Error Handling](#26-delegate-error-handling)
-- [2.7 Delegate Logging and Monitoring](#27-delegate-logging-and-monitoring)
+## Getting Started
 
-### 3. Workflow Decision Making
-- [3.1 BPMN Elements for Decision Making](#31-bpmn-elements-for-decision-making)
-- [3.2 Exclusive Gateways and Conditions](#32-exclusive-gateways-and-conditions)
-- [3.3 Timer Events and Scheduling](#33-timer-events-and-scheduling)
-- [3.4 Boundary Events](#34-boundary-events)
-- [3.5 Variable Evaluation](#35-variable-evaluation)
-- [3.6 Sub-process Execution](#36-sub-process-execution)
+### Prerequisites
 
-### 4. Internal Endpoints and Controllers
-- [4.1 REST API Architecture](#41-rest-api-architecture)
-- [4.2 FlowableController Endpoints](#42-flowablecontroller-endpoints)
-- [4.3 EmployeeController Endpoints](#43-employeecontroller-endpoints)
-- [4.4 Request/Response Patterns](#44-requestresponse-patterns)
-- [4.5 Authentication and Security](#45-authentication-and-security)
-- [4.6 Error Handling in APIs](#46-error-handling-in-apis)
+- **Java**: JDK 21 or higher
+- **PostgreSQL**: Version 12 or higher
+- **Elasticsearch**: Version 7.x or 8.x
+- **Maven**: 3.6+ for building the project
+- **Python**: 3.8+ (for running the mock NFX service)
 
-### 5. External API Integration
-- [5.1 NFX Service Architecture](#51-nfx-service-architecture)
-- [5.2 API Calling Patterns from Delegates](#52-api-calling-patterns-from-delegates)
-- [5.3 Authentication Mechanisms](#53-authentication-mechanisms)
-- [5.4 Detailed External Endpoints](#54-detailed-external-endpoints)
-- [5.5 Error Handling and Retry Logic](#55-error-handling-and-retry-logic)
-- [5.6 API Performance and Monitoring](#56-api-performance-and-monitoring)
+### Environment Setup
 
-### 6. Workflow Process Deep Dive
-- [6.1 Complete Workflow Lifecycle](#61-complete-workflow-lifecycle)
-- [6.2 Device Compatibility Check Phase](#62-device-compatibility-check-phase)
-- [6.3 Scheduling and Notification Phase](#63-scheduling-and-notification-phase)
-- [6.4 Pre-Upgrade Preparation](#64-pre-upgrade-preparation)
-- [6.5 Upgrade Execution](#65-upgrade-execution)
-- [6.6 Post-Upgrade Verification](#66-post-upgrade-verification)
-- [6.7 Workflow Completion](#67-workflow-completion)
+1. **PostgreSQL Setup**:
+   ```bash
+   # Create database
+   createdb flowable
 
-### 7. Configuration and Best Practices
-- [7.1 Application Properties Configuration](#71-application-properties-configuration)
-- [7.2 Database Configuration](#72-database-configuration)
-- [7.3 External Service Configuration](#73-external-service-configuration)
-- [7.4 Flowable Engine Configuration](#74-flowable-engine-configuration)
-- [7.5 Development Best Practices](#75-development-best-practices)
+   # Update connection details in application.properties if needed
+   spring.datasource.url=jdbc:postgresql://localhost:5432/flowable
+   spring.datasource.username=postgres
+   spring.datasource.password=root
+   ```
 
-### 8. Troubleshooting and Examples
-- [8.1 Common Issues and Solutions](#81-common-issues-and-solutions)
-- [8.2 Sample Workflow Executions](#82-sample-workflow-executions)
-- [8.3 Testing Strategies](#83-testing-strategies)
-- [8.4 Performance Optimization](#84-performance-optimization)
+2. **Elasticsearch Setup**:
+   ```bash
+   # Start Elasticsearch (adjust path as needed)
+   # Default configuration expects ES at http://192.168.5.52:8081
+   # Update spring.elasticsearch.uris in application.properties if different
+   ```
 
----
+3. **Email Configuration** (Optional):
+   - Update SMTP settings in `application.properties` for email notifications
+   - Default configuration uses Gmail SMTP
 
-## 1. Introduction and Overview
+### Running the Application
 
-### 1.1 What is Flowable BPM Engine?
+1. **Clone and Build**:
+   ```bash
+   git clone https://github.com/vardhan-98/Flowable_engine.git
+   cd Flowable_engine/flowable
+   mvn clean install
+   ```
 
-Flowable BPM (Business Process Management) is a powerful open-source workflow and Business Process Management (BPM) platform that enables organizations to model, execute, and monitor business processes. At its core, Flowable provides a robust engine that interprets BPMN (Business Process Model and Notation) diagrams and executes them as running process instances.
+2. **Start Mock NFX Service**:
+   ```bash
+   cd flowable
+   python script.py
+   ```
+   This starts the FastAPI mock server on `http://localhost:8000`
 
-#### Key Components of Flowable:
-- **Process Engine**: The heart of Flowable that executes BPMN processes
-- **DMN Engine**: For decision table execution
-- **CMMN Engine**: For case management
-- **Form Engine**: For dynamic form generation
-- **IDM Engine**: For identity management
+3. **Run the Application**:
+   ```bash
+   mvn spring-boot:run
+   ```
+   The application will start on `http://localhost:8080`
 
-#### BPMN 2.0 Standard:
-BPMN (Business Process Model and Notation) is the global standard for process modeling. It provides a graphical notation that business users and technical developers can understand. BPMN diagrams consist of various elements:
+4. **Access Points**:
+   - **API Documentation**: `http://localhost:8080/swagger-ui.html`
+   - **Application**: `http://localhost:8080`
 
-- **Events**: Things that happen during a process (start, end, intermediate)
-- **Activities**: Work that needs to be performed (tasks, sub-processes)
-- **Gateways**: Decision points in the process
-- **Sequence Flows**: The order of execution
-- **Data Objects**: Information used or produced
-- **Pools and Lanes**: Organizational boundaries
+## Build and Test
 
-In this system, we use BPMN 2.0 to model complex device upgrade workflows that involve multiple steps, decisions, timers, and external integrations.
+### Building the Project
 
-### 1.2 Importance of Workflow Orchestration
+```bash
+# Clean and build
+mvn clean install
 
-Workflow orchestration is critical in modern enterprise applications because it provides:
+# Build without tests
+mvn clean install -DskipTests
 
-#### Process Automation:
-- Eliminates manual intervention in repetitive tasks
-- Reduces human error
-- Ensures consistent execution across all instances
-- Enables 24/7 operation without human supervision
-
-#### Complex Process Management:
-- Handles multi-step processes with dependencies
-- Manages parallel execution paths
-- Coordinates between different systems and services
-- Maintains process state across long-running operations
-
-#### Business Rules Enforcement:
-- Ensures compliance with business policies
-- Implements approval workflows
-- Manages exception handling
-- Provides audit trails for regulatory requirements
-
-#### Scalability and Reliability:
-- Handles high-volume processing
-- Provides fault tolerance and recovery
-- Enables horizontal scaling
-- Maintains performance under load
-
-In the context of device upgrades, workflow orchestration ensures that each device goes through a systematic, reliable upgrade process that includes compatibility checks, scheduling, backups, actual upgrades, and verification - all coordinated automatically.
-
-### 1.3 System Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Client Applications                       │
-│  (Web UI, Mobile Apps, External Systems)                     │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 REST API Layer                              │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │  FlowableController    │  EmployeeController           │ │
-│  │  - Workflow Mgmt       │  - Employee Tasks             │ │
-│  │  - Batch Operations    │  - Task Assignment            │ │
-│  └─────────────────────────────────────────────────────────┘ │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Business Logic Layer                           │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │  FlowableService      │  EmployeeService               │ │
-│  │  - Process Execution  │  - Employee Mgmt               │ │
-│  │  - Task Management    │  - Assignment Logic            │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │  SchedulingService    │  EmailService                  │ │
-│  │  - Batch Processing   │  - Notifications               │ │
-│  │  - Excel Handling     │  - Templates                   │ │
-│  └─────────────────────────────────────────────────────────┘ │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Flowable BPM Engine                            │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │  Process Engine      │  Delegate Execution             │ │
-│  │  - BPMN Execution    │  - Java Delegates               │ │
-│  │  - Task Management   │  - External Calls               │ │
-│  └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │  Delegate Classes                                      │ │
-│  │  - Device Operations  │  - Email Notifications         │ │
-│  │  - API Integrations  │  - Scheduling Logic             │ │
-│  └─────────────────────────────────────────────────────────┘ │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Data Persistence Layer                         │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │  PostgreSQL          │  Elasticsearch                  │ │
-│  │  - Application Data  │  - Event Logs                   │ │
-│  │  - Flowable Tables   │  - Audit Trail                  │ │
-│  └─────────────────────────────────────────────────────────┘ │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│              External Systems                               │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │  NFX Service         │  Email Server                   │ │
-│  │  - Device Mgmt       │  - SMTP                         │ │
-│  │  - VNF Operations    │  - Notifications                │ │
-│  └─────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+# Run tests only
+mvn test
 ```
 
-#### Layer Descriptions:
+### Database Initialization
 
-**Client Layer**: Web interfaces, mobile applications, and external systems that interact with the workflow system.
+The application automatically creates database schemas and loads sample data on startup:
 
-**API Layer**: RESTful endpoints that expose workflow functionality. Controllers handle HTTP requests and responses.
+- **flowable_internal**: Flowable BPM engine tables
+- **app_data**: Application-specific entities
+- **Sample Employees**: 6 sample employees are created if the database is empty
 
-**Business Logic Layer**: Services that implement business rules, data processing, and coordination between components.
+### Testing
 
-**BPM Engine Layer**: Core Flowable engine that executes BPMN processes and manages workflow state.
+```bash
+# Run unit tests
+mvn test
 
-**Persistence Layer**: Databases for storing application data, workflow instances, and audit logs.
+# Run integration tests
+mvn verify
 
-**External Systems**: Third-party services for device management, email delivery, and other integrations.
-
-### 1.4 Key Features and Capabilities
-
-#### Automated Device Upgrade Orchestration:
-- **Batch Processing**: Handle multiple devices simultaneously through Excel uploads
-- **Intelligent Scheduling**: Automated timer-based workflow triggers
-- **Compatibility Verification**: Pre-upgrade checks for hardware/software requirements
-- **Rollback Capabilities**: Backup and recovery mechanisms
-- **Real-time Monitoring**: Live tracking of upgrade progress
-
-#### Advanced Workflow Features:
-- **Dynamic Decision Making**: Conditional execution based on device characteristics
-- **Timer Events**: Scheduled notifications and deadline management
-- **Parallel Processing**: Concurrent execution of independent tasks
-- **Exception Handling**: Robust error recovery and notification
-- **Audit Trail**: Complete logging of all workflow activities
-
-#### Integration Capabilities:
-- **External API Calls**: Seamless integration with device management systems
-- **Email Notifications**: Automated communication with stakeholders
-- **Database Persistence**: Reliable storage of workflow state
-- **Search and Analytics**: Elasticsearch-based event indexing
-
-#### Operational Excellence:
-- **Scalability**: Handle large volumes of concurrent workflows
-- **Reliability**: Fault-tolerant execution with retry mechanisms
-- **Monitoring**: Comprehensive logging and health checks
-- **Security**: Authentication and authorization controls
-
-### 1.5 Business Value and Use Cases
-
-#### Operational Efficiency:
-- Reduces manual intervention in device upgrade processes
-- Minimizes downtime through optimized scheduling
-- Ensures consistent execution across all upgrades
-- Provides visibility into upgrade progress and issues
-
-#### Risk Mitigation:
-- Automated compatibility checks prevent failed upgrades
-- Backup procedures protect against data loss
-- Rollback capabilities ensure system recoverability
-- Audit trails support compliance requirements
-
-#### Cost Optimization:
-- Reduces labor costs through automation
-- Minimizes failed upgrades and rework
-- Optimizes resource utilization
-- Enables predictive maintenance scheduling
-
-#### Use Cases:
-1. **Network Equipment Upgrades**: Telecom infrastructure modernization
-2. **Server Farm Updates**: Data center hardware refreshes
-3. **IoT Device Management**: Large-scale device firmware updates
-4. **Industrial Automation**: Manufacturing equipment upgrades
-5. **Cloud Migration**: Legacy system modernization
-
----
-
-## 2. Delegates in Depth
-
-### 2.1 Understanding Java Delegates in Flowable
-
-Java Delegates are the workhorses of Flowable BPM processes. They are Java classes that implement the `org.flowable.engine.delegate.JavaDelegate` interface and contain the actual business logic that gets executed when a service task is reached in a BPMN process.
-
-#### The JavaDelegate Interface:
-```java
-public interface JavaDelegate {
-    void execute(DelegateExecution execution);
-}
+# Generate test reports
+mvn surefire-report:report
 ```
 
-The `execute` method is called by the Flowable engine when the service task is activated. The `DelegateExecution` parameter provides access to:
-- Process variables
-- Process instance information
-- Task context
-- Engine services
+## How Scheduling Works
 
-#### Delegate Registration:
-Delegates are registered as Spring components using the `@Component` annotation with a unique name:
+The system supports two primary methods for scheduling device upgrades: direct API calls and Excel file uploads. Both methods handle batch processing, duplicate detection, and conflict resolution.
 
-```java
-@Component("DelegateName")
-public class MyDelegate implements JavaDelegate {
-    // implementation
-}
-```
+### Batch Upgrade via API
 
-In the BPMN XML, delegates are referenced using the `flowable:delegateExpression` attribute:
-```xml
-<serviceTask id="Task1" name="My Task" flowable:delegateExpression="${MyDelegate}" />
-```
-
-#### Delegate Types:
-1. **JavaDelegate**: Single execution method
-2. **ActivityBehavior**: More control over activity execution
-3. **ExecutionListener**: Listen to execution events
-4. **TaskListener**: Listen to task events
-
-### 2.2 Importance of Delegates in Workflow Automation
-
-Delegates are crucial because they bridge the gap between the graphical BPMN model and the actual business logic implementation. They enable:
-
-#### Business Logic Encapsulation:
-- Isolate complex business rules from process flow
-- Enable code reusability across different processes
-- Facilitate unit testing of business logic
-- Support different implementations for different environments
-
-#### External System Integration:
-- Call REST APIs, databases, message queues
-- Send emails, notifications
-- Interact with legacy systems
-- Coordinate with other microservices
-
-#### Process Control:
-- Make decisions based on business rules
-- Update process variables
-- Trigger subprocesses or events
-- Handle exceptions and errors
-
-#### Monitoring and Auditing:
-- Log execution details
-- Update audit trails
-- Send metrics to monitoring systems
-- Track performance indicators
-
-Without delegates, BPMN processes would be limited to simple routing and manual tasks. Delegates provide the computational power and integration capabilities that make workflows truly automated and valuable.
-
-### 2.3 Delegate Lifecycle and Execution
-
-#### Execution Context:
-When a delegate executes, it receives a `DelegateExecution` object that provides:
-
-```java
-public interface DelegateExecution {
-    String getProcessInstanceId();           // Unique process instance ID
-    String getProcessDefinitionId();         // BPMN process definition ID
-    String getCurrentActivityId();           // Current activity ID
-    Object getVariable(String name);         // Get process variable
-    void setVariable(String name, Object value); // Set process variable
-    Map<String, Object> getVariables();      // Get all variables
-    // ... more methods
-}
-```
-
-#### Variable Scoping:
-- **Process Variables**: Available throughout the entire process instance
-- **Task Local Variables**: Scoped to specific tasks
-- **Transient Variables**: Not persisted, used for temporary calculations
-
-#### Execution Flow:
-1. Process reaches service task
-2. Flowable engine instantiates delegate (or reuses Spring bean)
-3. `execute()` method called with DelegateExecution
-4. Delegate performs business logic
-5. Process variables updated if needed
-6. Execution continues to next element
-
-#### Asynchronous Execution:
-Delegates can be marked as asynchronous using `flowable:async="true"` in BPMN:
-```xml
-<serviceTask flowable:async="true" flowable:delegateExpression="${MyDelegate}" />
-```
-
-This allows the process to continue without waiting for the delegate to complete, improving performance for long-running operations.
-
-### 2.4 Common Delegate Patterns
-
-#### API Call Delegate Pattern:
-```java
-@Slf4j
-@Component("ApiCallDelegate")
-@RequiredArgsConstructor
-public class ApiCallDelegate implements JavaDelegate {
-
-    private final RestTemplate restTemplate;
-    private final ElasticsearchService loggingService;
-
-    @Value("${external.api.url}")
-    private String apiUrl;
-
-    @Override
-    public void execute(DelegateExecution execution) {
-        String processId = execution.getProcessInstanceId();
-        String entityId = (String) execution.getVariable("entityId");
-
-        try {
-            // Log start
-            loggingService.logEvent(processId, entityId, "OPERATION", "step", "STARTED", "Starting API call");
-
-            // Prepare request
-            Map<String, Object> request = Map.of(
-                "processId", processId,
-                "entityId", entityId,
-                "step", "operation-step"
-            );
-
-            // Make API call
-            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, request, String.class);
-
-            // Check response
-            if (response.getStatusCode().is2xxSuccessful()) {
-                loggingService.logEvent(processId, entityId, "OPERATION", "step", "SUCCESS", "API call successful");
-            } else {
-                throw new RuntimeException("API call failed with status: " + response.getStatusCode());
-            }
-
-        } catch (Exception e) {
-            loggingService.logEvent(processId, entityId, "OPERATION", "step", "FAILED", "API call failed: " + e.getMessage());
-            throw new RuntimeException("Delegate execution failed", e);
-        }
-    }
-}
-```
-
-#### Email Notification Delegate Pattern:
-```java
-@Slf4j
-@Component("EmailDelegate")
-public class EmailDelegate implements JavaDelegate {
-
-    @Autowired
-    private EmailService emailService;
-
-    @Override
-    public void execute(DelegateExecution execution) {
-        String recipient = (String) execution.getVariable("email");
-        String subject = (String) execution.getVariable("subject");
-        String processId = execution.getProcessInstanceId();
-
-        emailService.sendEmail(recipient, subject, processId);
-    }
-}
-```
-
-#### Decision Delegate Pattern:
-```java
-@Component("DecisionDelegate")
-public class DecisionDelegate implements JavaDelegate {
-
-    @Override
-    public void execute(DelegateExecution execution) {
-        // Evaluate conditions
-        boolean condition1 = evaluateCondition1(execution);
-        boolean condition2 = evaluateCondition2(execution);
-
-        // Set decision variables
-        execution.setVariable("decisionResult", condition1 && condition2);
-        execution.setVariable("alternativePath", condition1 || condition2);
-    }
-}
-```
-
-### 2.5 Detailed Delegate Operations
-
-#### 2.5.1 CheckDeviceDetailsDelegate
-
-The `CheckDeviceDetailsDelegate` is responsible for verifying device specifications and compatibility before proceeding with the upgrade process.
-
-**Purpose**: This delegate performs initial device validation to ensure the device meets minimum requirements for upgrade.
-
-**Execution Flow**:
-1. Extract device ID and flow instance ID from process variables
-2. Construct API request payload with standardized format
-3. Set authentication headers (Bearer token)
-4. Make HTTP POST call to `/check_device_details` endpoint
-5. Validate response status (must be 2xx)
-6. Log success or failure to Elasticsearch
-7. Throw RuntimeException on failure to trigger BPMN error handling
-
-**Key Code Analysis**:
-```java
-String url = baseUrl + "/check_device_details";
-
-var requestBody = java.util.Map.of(
-    "flowInstanceID", flowId,
-    "deviceID", deviceId,
-    "step", "check-device-details"
-);
-```
-
-**Error Scenarios**:
-- Network timeouts
-- Authentication failures
-- Invalid device ID
-- External service unavailable
-- Non-2xx HTTP responses
-
-**Logging Pattern**:
-- STARTED: "Checking device details via [URL]"
-- SUCCESS: "Device details check API responded with status [CODE]"
-- FAILED: "Device details check API responded with non-2xx status [CODE]" or exception message
-
-**Importance**: This is the first validation step. Failure here prevents incompatible devices from proceeding through the expensive upgrade process.
-
-#### 2.5.2 RebootDeviceDelegate
-
-The `RebootDeviceDelegate` handles remote device reboot operations during the upgrade sequence.
-
-**Purpose**: Safely reboot the device as part of the upgrade process, ensuring the device is in the correct state for subsequent operations.
-
-**Execution Flow**:
-1. Retrieve device and process identifiers
-2. Prepare standardized request payload
-3. Configure HTTP headers with authentication
-4. Execute POST request to `/reboot_device`
-5. Verify successful response (2xx status)
-6. Log operation result
-7. Propagate exceptions for workflow error handling
-
-**Technical Details**:
-- Uses Spring `RestTemplate` for HTTP communication
-- Implements bearer token authentication
-- Includes comprehensive error logging
-- Follows consistent payload structure across all device operations
-
-**Integration Points**:
-- Depends on `nfx.service.base.mock.url` configuration
-- Requires `nfx.service.auth.token` for authentication
-- Updates Elasticsearch with operation logs
-- Throws exceptions to trigger BPMN error boundaries
-
-**Business Impact**: Device reboot is critical for applying firmware updates and ensuring system stability post-upgrade.
-
-#### 2.5.3 ReminderEmailDelegate
-
-The `ReminderEmailDelegate` manages automated email notifications throughout the upgrade scheduling process.
-
-**Purpose**: Send timely reminders to stakeholders about upcoming device upgrades, reducing no-show rates and improving coordination.
-
-**Execution Flow**:
-1. Extract email address, device ID, and scheduling information
-2. Retrieve process instance context
-3. Delegate to `EmailService` for actual email sending
-4. Include upgrade details in email content
-
-**Key Features**:
-- Uses `EmailService` for template processing
-- Supports multiple reminder types (7-day, 3-day, 2-day, 1-day)
-- Includes device and scheduling context
-- Configurable sender address
-
-**Email Content Structure**:
-- Subject: Upgrade reminder with date
-- Body: Device details, upgrade schedule, contact information
-- HTML formatting with company branding
-- Process instance tracking for audit purposes
-
-**Business Value**: Automated reminders ensure stakeholders are informed and prepared, reducing scheduling conflicts and improving upgrade success rates.
-
-#### 2.5.4 Compatibility Delegates
-
-The system includes several specialized delegates for hardware/software compatibility verification:
-
-**VerifyAndUpgradeBiosDelegate**:
-- Checks BIOS version compatibility
-- Performs BIOS updates if necessary
-- Validates firmware requirements
-
-**VerifyAndUpgradeNicDelegate**:
-- Network interface card validation
-- Driver updates and compatibility checks
-- Network configuration verification
-
-**VerifyAndUpgradeSsdDelegate**:
-- Solid-state drive firmware checks
-- Storage capacity validation
-- Performance requirement assessment
-
-**VerifyAndUpgradeBluejacketDelegate**:
-- Base system firmware verification
-- Core platform compatibility
-- System stability checks
-
-**Common Patterns**:
-- All follow similar API calling structure
-- Use standardized request/response formats
-- Implement consistent error handling
-- Log to Elasticsearch for monitoring
-
-**Execution Sequence**: These delegates run in a specific order within the Device Compatibility Check sub-process, ensuring cumulative validation.
-
-#### 2.5.5 ScheduleModifierDelegate
-
-The `ScheduleModifierDelegate` handles rescheduling requests with built-in attempt limits.
-
-**Purpose**: Allow stakeholders to request schedule changes while preventing abuse through attempt limitations.
-
-**Key Features**:
-- Implements 3-attempt limit for rescheduling
-- Tracks reschedule attempts per workflow
-- Sends confirmation emails for approved changes
-- Updates process variables with new dates
-
-**Business Logic**:
-```java
-int attempts = (Integer) execution.getVariable("rescheduleAttempts");
-if (attempts >= 3) {
-    throw new RuntimeException("Maximum reschedule attempts exceeded");
-}
-```
-
-**Integration**: Works with message events and receive tasks in BPMN for asynchronous reschedule handling.
-
-#### 2.5.6 Other Delegates
-
-**PreUpgradeBackupDelegate**: Creates system backups before modifications
-**MgmtPortDelegate**: Configures management network interfaces
-**PostRebootChecksDelegate**: Verifies system health after reboot
-**DeviceActivationDelegate**: Activates device post-upgrade
-**VnfSpinUpDelegate**: Deploys Virtual Network Functions
-**ImageStagingDelegate**: Prepares upgrade images
-**ScheduleDelegate**: Handles initial scheduling logic
-
-### 2.6 Delegate Error Handling
-
-All delegates implement comprehensive error handling:
-
-#### Exception Propagation:
-- RuntimeExceptions bubble up to BPMN engine
-- Triggers error boundaries or event sub-processes
-- Enables workflow-level error recovery
-
-#### Logging Strategy:
-- All errors logged to Elasticsearch
-- Include context (process ID, device ID, operation)
-- Distinguish between temporary and permanent failures
-
-#### Recovery Patterns:
-- Retry mechanisms for transient failures
-- Compensation actions for partial failures
-- Notification triggers for manual intervention
-
-### 2.7 Delegate Logging and Monitoring
-
-#### Elasticsearch Integration:
-Every delegate logs structured events:
-```json
-{
-  "processId": "flow-instance-123",
-  "deviceId": "device-456",
-  "operation": "DeviceUpgrade",
-  "step": "reboot-device",
-  "status": "STARTED| SUCCESS | FAILED",
-  "message": "Detailed operation message",
-  "timestamp": "2025-11-14T04:00:00Z"
-}
-```
-
-#### Monitoring Benefits:
-- Real-time operation tracking
-- Performance metrics collection
-- Error rate monitoring
-- Audit trail maintenance
-- Troubleshooting support
-
----
-
-## 3. Workflow Decision Making
-
-### 3.1 BPMN Elements for Decision Making
-
-Flowable uses several BPMN elements to implement decision logic:
-
-#### Exclusive Gateways:
-- Represented as diamonds with X
-- Only one outgoing sequence flow is taken
-- Based on conditions or expressions
-
-#### Inclusive Gateways:
-- Allow multiple paths to be taken
-- All conditions evaluated independently
-
-#### Parallel Gateways:
-- Synchronize multiple parallel flows
-- No conditions, all paths executed
-
-#### Event-Based Gateways:
-- Route based on events rather than conditions
-- First event to occur determines path
-
-### 3.2 Exclusive Gateways and Conditions
-
-The upgrade workflow uses exclusive gateways extensively:
-
-```xml
-<exclusiveGateway id="Gateway_0lsc1ux">
-  <outgoing>Flow_0ffn60g</outgoing>
-  <outgoing>Flow_0s96oyv</outgoing>
-</exclusiveGateway>
-
-<sequenceFlow sourceRef="Gateway_0lsc1ux" targetRef="Activity_0qf4otk">
-  <conditionExpression>${stagingFlag=="false"}</conditionExpression>
-</sequenceFlow>
-
-<sequenceFlow sourceRef="Gateway_0lsc1ux" targetRef="Activity_1nf5tab">
-  <conditionExpression>${stagingFlag=="true"}</conditionExpression>
-</sequenceFlow>
-```
-
-**Condition Evaluation**:
-- Uses Java Unified Expression Language (JUEL)
-- Access to process variables
-- Support for complex expressions
-- Default flow if no conditions match
-
-### 3.3 Timer Events and Scheduling
-
-#### Timer Event Types:
-1. **Time Date**: Specific date/time
-2. **Time Duration**: Relative duration
-3. **Time Cycle**: Repeating intervals
-
-#### Examples in the Workflow:
-```xml
-<!-- Boundary Timer -->
-<boundaryEvent attachedToRef="Activity_19qntoo">
-  <timerEventDefinition>
-    <timeDate>${java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).minusDays(3).toString()}</timeDate>
-  </timerEventDefinition>
-</boundaryEvent>
-
-<!-- Intermediate Timer -->
-<intermediateCatchEvent>
-  <timerEventDefinition>
-    <timeDuration>P7D</timeDuration>
-  </timerEventDefinition>
-</intermediateCatchEvent>
-```
-
-#### Timer Calculations:
-- Use Java Time API expressions
-- Parse scheduled dates from variables
-- Calculate offsets (days, hours, minutes)
-- Support for business days vs calendar days
-
-### 3.4 Boundary Events
-
-Boundary events attach to activities and trigger when the activity is active:
-
-#### Timer Boundary Events:
-- Trigger after timeout
-- Interrupt or non-interrupting
-- Used for escalations and reminders
-
-#### Error Boundary Events:
-- Catch exceptions from delegates
-- Enable error recovery workflows
-- Provide alternative paths
-
-### 3.5 Variable Evaluation
-
-Process variables drive decision making:
-
-#### Variable Types:
-- String, Integer, Boolean, Date
-- Complex objects (serialized)
-- Collections and maps
-
-#### Expression Examples:
-```java
-${stagingFlag == "true"}
-${(java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).toInstant().toEpochMilli() - java.time.Instant.now().toEpochMilli()) / (1000.0 * 60 * 60 * 24) > 7}
-${deviceType == "SERVER" && firmwareVersion < 2.1}
-```
-
-### 3.6 Sub-process Execution
-
-Sub-processes encapsulate complex logic:
-
-#### Embedded Sub-processes:
-- Part of main process definition
-- Share parent variables
-- Can have own start/end events
-
-#### Benefits:
-- Modularity and reusability
-- Simplified main process flow
-- Scoped variable handling
-- Easier testing and maintenance
-
----
-
-## 4. Internal Endpoints and Controllers
-
-### 4.1 REST API Architecture
-
-The system exposes RESTful APIs through Spring MVC controllers:
-
-#### Controller Structure:
-- `@RestController` for JSON responses
-- `@RequestMapping` for base paths
-- `@CrossOrigin` for CORS support
-- Comprehensive validation with `@Valid`
-
-#### Common Patterns:
-- HTTP status codes for responses
-- Structured error responses
-- Pagination for list endpoints
-- Filtering and sorting capabilities
-
-### 4.2 FlowableController Endpoints
-
-#### Workflow Management:
-```java
-@PostMapping("/api/workflow-executions")
-public ResponseEntity<Page<WorkflowExecution>> getWorkflowExecutions(
-    @RequestParam(defaultValue = "0") int page,
-    @RequestParam(defaultValue = "10") int size,
-    @RequestBody(required = false) WorkflowFilterRequest filter)
-```
-
-**Purpose**: Retrieve paginated workflow executions with optional filtering.
-
-**Parameters**:
-- `page`: Page number (default: 0)
-- `size`: Page size (default: 10)
-- `filter`: Optional filter criteria (status, date range, device ID)
-
-**Response**: Paginated list of WorkflowExecution objects.
-
-#### Process Diagram:
-```java
-@GetMapping("/api/process-instance/{processInstanceId}/diagram")
-public ResponseEntity<DiagramResponse> getProcessInstanceDiagram(@PathVariable String processInstanceId)
-```
-
-**Purpose**: Generate visual diagram of workflow instance.
-
-**Implementation**: Uses Flowable's diagram generation capabilities to create PNG/SVG representations of the current process state.
-
-#### Batch Operations:
-```java
-@PostMapping("/api/devices/start-batch-upgrade")
-public ResponseEntity<Map<String, Object>> startBatchUpgrade(@Valid @RequestBody List<DeviceRequest> devices)
-```
-
-**Purpose**: Initiate batch upgrade for multiple devices.
+**Endpoint**: `POST /api/devices/start-batch-upgrade`
 
 **Request Body**:
 ```json
 [
   {
-    "deviceId": "DEV-001",
-    "scheduledDate": "2025-12-01T10:00:00Z",
-    "customerEmail": "admin@company.com"
+    "deviceId": "cpe.example.com",
+    "customerEmail": "customer@example.com",
+    "assignedDtac": "john.doe",
+    "scheduledZoneDateTime": "2025-11-15T14:00:00Z"
   }
 ]
 ```
 
-#### Reschedule Endpoint:
-```java
-@PostMapping("/api/devices/reschedule/{processInstanceId}")
-public ResponseEntity<Map<String, Object>> rescheduleDeviceUpgrade(
-    @PathVariable String processInstanceId,
-    @Valid @RequestBody RescheduleRequest request)
-```
-
-**Purpose**: Handle reschedule requests with validation.
-
-**Business Logic**: Checks attempt limits, updates scheduling, sends notifications.
-
-### 4.3 EmployeeController Endpoints
-
-#### Employee Queries:
-```java
-@GetMapping
-public ResponseEntity<?> getActiveEmployeesInDateRange(
-    @RequestParam String startDate,
-    @RequestParam String endDate)
-```
-
-**Purpose**: Find employees available for upgrade tasks within date range.
-
-**Date Format**: ISO 8601 (e.g., "2025-11-14T00:00:00Z")
-
-#### Employee Details:
-```java
-@GetMapping("/{attUid}")
-public ResponseEntity<?> getEmployeeWithTasks(
-    @PathVariable String attUid,
-    @RequestParam(required = false) String startDate,
-    @RequestParam(required = false) String endDate)
-```
-
-**Purpose**: Get employee information with associated tasks.
-
-**Response**: Employee object with task assignments and availability.
-
-#### Task Reassignment:
-```java
-@PostMapping("/reassign")
-public ResponseEntity<?> reassignWorkflow(@RequestBody ReassignWorkflowRequest request)
-```
-
-**Request Body**:
+**Response**:
 ```json
 {
-  "workflowId": "flow-123",
-  "newEmployeeAttUid": "employee456"
+  "message": "Batch device upgrade initiated",
+  "processes": ["cpe.example.com: process-instance-id"],
+  "totalDevices": 1,
+  "completed": 1
 }
 ```
 
-**Validation**: Ensures workflow exists and employee is available.
+### Excel Sheet Upload
 
-### 4.4 Request/Response Patterns
+**Template Download**: `GET /api/batch-upgrade/template`
 
-#### Standard Response Structure:
-```java
-public class ApiResponse<T> {
-    private boolean success;
-    private String message;
-    private T data;
-    private LocalDateTime timestamp;
-}
-```
+**Upload Endpoint**: `POST /api/batch-upgrade/upload`
 
-#### Error Responses:
-```java
+**Excel Format**:
+| Serial Number | uCPE Host Name | Date (DD-MM-YYYY UTC) | Time (HH:mm UTC) | assignedDtac attuid | Customer Email |
+|---------------|---------------|----------------------|------------------|-------------------|----------------|
+| 1 | cpe.example.com | 15-11-2025 | 14:00 | john.doe | customer@example.com |
+
+**Upload Response**:
+```json
 {
-  "success": false,
-  "message": "Validation failed",
-  "errors": ["Field 'email' is required"],
-  "timestamp": "2025-11-14T04:00:00"
+  "message": "Batch upgrade processed with overwrites pending confirmation",
+  "overwriteId": "uuid-here",
+  "overwrites": [...],
+  "newDevicesProcessed": 5,
+  "duplicatesSkipped": 2,
+  "failedDevices": []
 }
 ```
 
-#### Pagination Response:
-```java
+**Confirm Overwrites**: `POST /api/batch-upgrade/confirm/{overwriteId}`
+
+### Task Assignment and Management
+
+- **Automatic Assignment**: Workflows are automatically assigned to tasks based on scheduled time and available employees
+- **Task Grouping**: Multiple workflows can be grouped into a single task for the same employee and time slot
+- **Reassignment**: Workflows can be reassigned to different employees via API
+- **3-Day Rule**: Scheduled upgrades cannot be rescheduled if within 3 days of execution
+
+## Database Schema
+
+The application uses a dual-schema approach for clean separation of concerns:
+
+### Schema Overview
+
+```
+flowable_internal (Flowable BPM Tables)
+├── ACT_* tables for process definitions, executions, history
+
+app_data (Application Tables)
+├── employee
+├── task
+├── workflow_execution
+```
+
+### Entity Relationships
+
+```
+Employee (1) ──── (N) Task
+    │                   │
+    │                   │
+    └── (1) ──── (N) WorkflowExecution
+                    │
+                    │
+                    └── (N) ──── (1) Task
+```
+
+### Key Tables
+
+#### Employee
+```sql
+CREATE TABLE employee (
+    att_uid VARCHAR PRIMARY KEY,
+    email VARCHAR NOT NULL,
+    role VARCHAR,
+    skills TEXT[], -- PostgreSQL array
+    first_name VARCHAR,
+    last_name VARCHAR,
+    is_active BOOLEAN DEFAULT true
+);
+```
+
+#### Task
+```sql
+CREATE TABLE task (
+    id VARCHAR PRIMARY KEY,
+    start_time TIMESTAMP,
+    end_time TIMESTAMP,
+    assigned_user_id VARCHAR REFERENCES employee(att_uid),
+    workflow_count INTEGER DEFAULT 0
+);
+```
+
+#### WorkflowExecution
+```sql
+CREATE TABLE workflow_execution (
+    flow_instance_id VARCHAR PRIMARY KEY,
+    device_id VARCHAR,
+    step VARCHAR,
+    message TEXT,
+    assigned_dtac VARCHAR,
+    created_at TIMESTAMP,
+    scheduled_time TIMESTAMP,
+    device_compatibility_time TIMESTAMP,
+    local_customer_email_contact VARCHAR,
+    local_customer_mobile_contact VARCHAR,
+    issuer VARCHAR,
+    process_name VARCHAR,
+    process_flow_id VARCHAR,
+    task_id VARCHAR REFERENCES task(id),
+    completed BOOLEAN DEFAULT false,
+    completed_time TIMESTAMP,
+    last_updated TIMESTAMP,
+    re_schedule_count INTEGER,
+    status VARCHAR
+);
+```
+
+## API Endpoints
+
+### Workflow Management
+
+#### Get Workflow Executions
+**Endpoint:** `POST /api/workflow-executions`  
+**Method:** POST  
+**Purpose:** Retrieve paginated workflow executions with optional filtering and sorting
+
+**Query Parameters:**
+- `page` (integer, default: 0): Page number for pagination
+- `size` (integer, default: 10): Number of items per page
+
+**Request Body:**
+```json
 {
-  "content": [...],
+  "deviceIds": ["cpe1", "cpe2"],
+  "workflows": ["workflow1"],
+  "completed": false,
+  "emailContact": "customer@example.com",
+  "createdAtFrom": "2023-01-01T00:00:00Z",
+  "createdAtTo": "2023-12-31T23:59:59Z",
+  "scheduledTimeFrom": "2023-01-01T00:00:00Z",
+  "scheduledTimeTo": "2023-12-31T23:59:59Z",
+  "processNames": ["Upgrade Process"],
+  "processFlowIds": ["Process_1"],
+  "sort": {
+    "createdAt": "desc",
+    "deviceId": "asc"
+  }
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "content": [
+    {
+      "flowInstanceId": "process-instance-id",
+      "deviceId": "cpe.example.com",
+      "step": "STARTED",
+      "message": "Workflow initiated",
+      "assignedDtac": "john.doe",
+      "createdAt": "2023-11-14T10:00:00Z",
+      "scheduledTime": "2023-11-20T14:00:00Z",
+      "deviceCompatibilityTime": null,
+      "localCustomerEmailContact": "customer@example.com",
+      "localCustomerMobileContact": null,
+      "issuer": null,
+      "processName": "Device Upgrade Process",
+      "processFlowId": "Process_1",
+      "taskId": "task-uuid",
+      "completed": false,
+      "completedTime": null,
+      "lastUpdated": "2023-11-14T10:00:00Z",
+      "reScheduleCount": 0,
+      "status": "STARTED"
+    }
+  ],
   "pageable": {
     "page": 0,
     "size": 10,
-    "sort": ["createdDate,desc"]
+    "sort": ["createdAt: DESC"]
   },
-  "totalElements": 150,
-  "totalPages": 15,
+  "totalElements": 1,
+  "totalPages": 1,
   "first": true,
-  "last": false
+  "last": true
 }
 ```
 
-### 4.5 Authentication and Security
+#### Get Process Instance Diagram
+**Endpoint:** `GET /api/process-instance/{processInstanceId}/diagram`  
+**Method:** GET  
+**Purpose:** Retrieve BPMN diagram and execution details for a specific process instance
 
-#### Current Implementation:
-- Basic CORS configuration
-- No authentication on endpoints (development mode)
-- Plans for JWT/OAuth integration
+**Path Parameters:**
+- `processInstanceId` (string): The ID of the process instance
 
-#### Security Headers:
-```java
-@Configuration
-public class SecurityConfig {
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        // ... additional security headers
+**Response (200 OK):**
+```json
+{
+  "bpmnXml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><bpmn:definitions...>",
+  "executedActivities": ["Activity_1", "Activity_2"],
+  "activeActivities": ["Activity_3"],
+  "activityDetails": {
+    "Activity_1": {
+      "startTime": "2023-11-14T10:00:00Z",
+      "endTime": "2023-11-14T10:05:00Z"
     }
+  }
 }
 ```
 
-### 4.6 Error Handling in APIs
-
-#### Global Exception Handler:
-```java
-@RestControllerAdvice
-public class GlobalExceptionHandler {
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
-        return ResponseEntity.badRequest()
-            .body(new ErrorResponse("INVALID_REQUEST", e.getMessage()));
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGeneric(Exception e) {
-        log.error("Unexpected error", e);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred"));
-    }
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "timestamp": "2023-11-14T10:00:00Z",
+  "status": 500,
+  "error": "Internal Server Error",
+  "message": "Error retrieving diagram"
 }
 ```
 
-#### Validation Errors:
-- Uses Bean Validation (`@Valid`, `@NotNull`, etc.)
-- Returns field-level error details
-- Supports custom validation annotations
+#### Get Task Details
+**Endpoint:** `GET /api/tasks/{taskId}`  
+**Method:** GET  
+**Purpose:** Retrieve detailed information about a specific task
 
----
+**Path Parameters:**
+- `taskId` (string): The ID of the task
 
-## 5. External API Integration
-
-### 5.1 NFX Service Architecture
-
-The system integrates with Network Function Virtualization (NFX) services for device operations:
-
-#### Service Architecture:
-- RESTful APIs with JSON payloads
-- Bearer token authentication
-- Standardized request/response formats
-- Comprehensive error handling
-
-#### Base Configuration:
-```properties
-nfx.service.base.mock.url=http://localhost:8000
-nfx.service.auth.token=${NFX_AUTH_TOKEN}
+**Response (200 OK):**
+```json
+{
+  "id": "task-uuid",
+  "startTime": "2023-11-20T14:00:00Z",
+  "endTime": "2023-11-20T15:00:00Z",
+  "assignedUserId": "john.doe",
+  "workflowCount": 3
+}
 ```
 
-### 5.2 API Calling Patterns from Delegates
+**Error Response (500 Internal Server Error):**
+```json
+{
+  "timestamp": "2023-11-14T10:00:00Z",
+  "status": 500,
+  "error": "Internal Server Error",
+  "message": "Error retrieving task"
+}
+```
 
-All delegates follow a consistent pattern for external API calls:
+#### Get Logs for Flow Instance
+**Endpoint:** `GET /api/logs`  
+**Method:** GET  
+**Purpose:** Retrieve Elasticsearch logs for a specific flow instance
 
-#### Standard Implementation:
+**Query Parameters:**
+- `flowId` (string, required): The flow instance ID to retrieve logs for
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "log-id-1",
+    "flowId": "process-instance-id",
+    "deviceId": "cpe.example.com",
+    "step": "check_device_details",
+    "stage": "STARTED",
+    "message": "Checking device compatibility",
+    "timestamp": "2023-11-14T10:00:00Z"
+  },
+  {
+    "id": "log-id-2",
+    "flowId": "process-instance-id",
+    "deviceId": "cpe.example.com",
+    "step": "check_device_details",
+    "stage": "COMPLETED",
+    "message": "Device compatibility check passed",
+    "timestamp": "2023-11-14T10:05:00Z"
+  }
+]
+```
+
+#### Cancel Workflow
+**Endpoint:** `DELETE /api/workflow/{processInstanceId}`  
+**Method:** DELETE  
+**Purpose:** Cancel/abort a running workflow process
+
+**Path Parameters:**
+- `processInstanceId` (string): The ID of the process instance to cancel
+
+**Response (200 OK):**
+```json
+{
+  "message": "Workflow aborted successfully",
+  "processInstanceId": "process-instance-id",
+  "status": "OK"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "message": "Process instance not found",
+  "status": "NOT_FOUND"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "message": "Process instance is already completed and cannot be cancelled",
+  "status": "BAD_REQUEST"
+}
+```
+
+### Scheduling
+
+#### Start Batch Upgrade
+**Endpoint:** `POST /api/devices/start-batch-upgrade`  
+**Method:** POST  
+**Purpose:** Initiate batch device upgrade processes for multiple devices
+
+**Request Body:**
+```json
+[
+  {
+    "deviceId": "cpe.example.com",
+    "customerEmail": "customer@example.com",
+    "assignedDtac": "john.doe",
+    "scheduledZoneDateTime": "2025-11-15T14:00:00Z"
+  },
+  {
+    "deviceId": "cpe2.example.com",
+    "customerEmail": "customer2@example.com",
+    "assignedDtac": "jane.smith",
+    "scheduledZoneDateTime": "2025-11-16T10:00:00Z"
+  }
+]
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Batch device upgrade initiated",
+  "processes": [
+    "cpe.example.com: process-instance-id-1",
+    "cpe2.example.com: process-instance-id-2"
+  ],
+  "totalDevices": 2,
+  "completed": 2
+}
+```
+
+#### Reschedule Device Upgrade
+**Endpoint:** `POST /api/devices/reschedule/{processInstanceId}`  
+**Method:** POST  
+**Purpose:** Reschedule an existing device upgrade workflow
+
+**Path Parameters:**
+- `processInstanceId` (string): The ID of the process instance to reschedule
+
+**Request Body:**
+```json
+{
+  "newScheduledZoneDateTime": "2025-11-16T10:00:00Z",
+  "assignedDTAC": "jane.smith"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Device upgrade rescheduled successfully",
+  "processInstanceId": "process-instance-id",
+  "newScheduledTime": "2025-11-16T10:00:00Z",
+  "preUpgradeTime": "2025-11-09T10:00:00Z",
+  "rescheduleCount": 1,
+  "status": "OK"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "message": "Process instance not found",
+  "status": "NOT_FOUND"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "message": "Reschedule limit exceeded. Maximum 3 reschedules allowed.",
+  "currentRescheduleCount": 3,
+  "maxRescheduleCount": 3,
+  "status": "BAD_REQUEST"
+}
+```
+
+#### Download Batch Upgrade Template
+**Endpoint:** `GET /api/batch-upgrade/template`  
+**Method:** GET  
+**Purpose:** Download Excel template for batch upgrade data entry
+
+**Response (200 OK):**
+- Content-Type: `application/octet-stream`
+- Content-Disposition: `attachment; filename=batch_upgrade_template.xlsx`
+- Body: Excel file with template format
+
+#### Upload Batch Upgrade Excel
+**Endpoint:** `POST /api/batch-upgrade/upload`  
+**Method:** POST  
+**Purpose:** Upload Excel file containing batch upgrade data for processing
+
+**Content-Type:** `multipart/form-data`
+
+**Request Body:**
+- `file`: Multipart file (Excel .xlsx format)
+
+**Response (200 OK):**
+```json
+{
+  "message": "Batch upgrade processed with overwrites pending confirmation",
+  "overwriteId": "uuid-string",
+  "overwrites": [
+    {
+      "deviceId": "cpe.example.com",
+      "oldValues": {
+        "scheduledTime": "2025-11-15T14:00:00Z",
+        "assignedDtac": "john.doe",
+        "customerEmail": "old@example.com"
+      },
+      "newValues": {
+        "scheduledTime": "2025-11-16T10:00:00Z",
+        "assignedDtac": "jane.smith",
+        "customerEmail": "new@example.com"
+      },
+      "changes": ["scheduledTime", "assignedDtac", "customerEmail"]
+    }
+  ],
+  "newDevicesProcessed": 5,
+  "duplicatesSkipped": 2,
+  "failedDevices": [],
+  "totalDevices": 7
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "message": "Validation errors found in Excel file",
+  "errors": [
+    "Row 2: Date must be in DD-MM-YYYY format",
+    "Row 3: Customer Email is required"
+  ],
+  "status": "BAD_REQUEST"
+}
+```
+
+#### Confirm Batch Upgrade Overwrites
+**Endpoint:** `POST /api/batch-upgrade/confirm/{overwriteId}`  
+**Method:** POST  
+**Purpose:** Confirm and apply pending overwrites from batch upgrade processing
+
+**Path Parameters:**
+- `overwriteId` (string): The overwrite session ID from upload response
+
+**Response (200 OK):**
+```json
+{
+  "message": "Batch upgrade overwrites confirmed and processed",
+  "updatedProcesses": [
+    "cpe.example.com: process-instance-id-1",
+    "cpe2.example.com: process-instance-id-2"
+  ],
+  "failedUpdates": [],
+  "totalOverwrites": 2,
+  "successfulUpdates": 2,
+  "status": "OK"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "message": "Overwrite session not found or expired",
+  "status": "NOT_FOUND"
+}
+```
+
+### Employee Management
+
+#### Get Active Employees in Date Range
+**Endpoint:** `GET /api/employees`  
+**Method:** GET  
+**Purpose:** Retrieve list of active employees available within a specified date range
+
+**Query Parameters:**
+- `startDate` (string, required): Start date in ISO 8601 format (e.g., 2023-11-14T00:00:00Z)
+- `endDate` (string, required): End date in ISO 8601 format (e.g., 2023-11-20T23:59:59Z)
+
+**Response (200 OK):**
+```json
+[
+  {
+    "attUid": "john.doe",
+    "email": "john.doe@company.com",
+    "role": "Technician",
+    "skills": ["networking", "security"],
+    "firstName": "John",
+    "lastName": "Doe",
+    "isActive": true
+  },
+  {
+    "attUid": "jane.smith",
+    "email": "jane.smith@company.com",
+    "role": "Senior Technician",
+    "skills": ["networking", "security", "cloud"],
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "isActive": true
+  }
+]
+```
+
+**Error Response (400 Bad Request):**
+```json
+"Invalid date format. Use ISO 8601 format (e.g., 2023-11-14T00:00:00Z)"
+```
+
+#### Get Employee with Tasks
+**Endpoint:** `GET /api/employees/{attUid}`  
+**Method:** GET  
+**Purpose:** Retrieve detailed employee information including assigned tasks within a date range
+
+**Path Parameters:**
+- `attUid` (string): Employee's ATT UID
+
+**Query Parameters:**
+- `startDate` (string, optional): Start date in ISO 8601 format (default: 30 days ago)
+- `endDate` (string, optional): End date in ISO 8601 format (default: 30 days from now)
+
+**Response (200 OK):**
+```json
+{
+  "attUid": "john.doe",
+  "email": "john.doe@company.com",
+  "role": "Technician",
+  "skills": ["networking", "security"],
+  "firstName": "John",
+  "lastName": "Doe",
+  "isActive": true,
+  "tasks": [
+    {
+      "id": "task-uuid-1",
+      "startTime": "2023-11-20T14:00:00Z",
+      "endTime": "2023-11-20T15:00:00Z",
+      "assignedUserId": "john.doe",
+      "workflowCount": 2
+    }
+  ]
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+"{}"
+```
+
+#### Reassign Workflow
+**Endpoint:** `POST /api/employees/reassign`  
+**Method:** POST  
+**Purpose:** Reassign a workflow from one employee to another
+
+**Request Body:**
+```json
+{
+  "workflowId": "process-instance-id",
+  "newEmployeeAttUid": "jane.smith"
+}
+```
+
+**Response (200 OK):**
+```json
+"Workflow reassigned successfully"
+```
+
+**Error Response (400 Bad Request):**
+```json
+"Workflow ID is required"
+```
+
+**Error Response (404 Not Found):**
+```json
+"Workflow not found or employee not found"
+```
+
+### Testing Endpoints
+
+#### Test Email Functionality
+**Endpoint:** `GET /api/test-emails`  
+**Method:** GET  
+**Purpose:** Test email sending functionality (development/testing only)
+
+**Response (200 OK):**
+```json
+"Test emails sent successfully to harshvardhan.r@prodapt.com"
+```
+
+### Detailed Examples
+
+#### Get Workflow Executions
+```bash
+POST /api/workflow-executions?page=0&size=10
+Content-Type: application/json
+
+{
+  "deviceIds": ["cpe1", "cpe2"],
+  "completed": false,
+  "sort": {"createdAt": "desc"}
+}
+```
+
+#### Start Batch Upgrade
+```bash
+POST /api/devices/start-batch-upgrade
+Content-Type: application/json
+
+[
+  {
+    "deviceId": "cpe.example.com",
+    "customerEmail": "customer@example.com",
+    "assignedDtac": "john.doe",
+    "scheduledZoneDateTime": "2025-11-15T14:00:00Z"
+  }
+]
+```
+
+#### Reschedule Device Upgrade
+```bash
+POST /api/devices/reschedule/process-instance-id
+Content-Type: application/json
+
+{
+  "newScheduledZoneDateTime": "2025-11-16T10:00:00Z",
+  "assignedDTAC": "jane.smith"
+}
+```
+
+#### Reassign Workflow
+```bash
+POST /api/employees/reassign
+Content-Type: application/json
+
+{
+  "workflowId": "process-instance-id",
+  "newEmployeeAttUid": "jane.smith"
+}
+```
+
+## External API Calls
+
+The system integrates with external NFX (Network Function Virtualization) services for device operations. All external calls are made via REST APIs with comprehensive logging.
+
+### NFX Service Endpoints
+
+| Path | Method | Purpose | Request Body | Response | Significance |
+|------|--------|---------|--------------|----------|--------------|
+| `/check_device_details` | POST | Validate device compatibility | `{flowInstanceID, deviceID, step}` | Device details JSON | Ensures device meets upgrade requirements before proceeding |
+| `/pre_upgrade_backup` | POST | Create system backup | `{flowInstanceID, deviceID, step}` | Backup details | Critical safety step to prevent data loss during upgrade |
+| `/reboot_device` | POST | Reboot device | `{flowInstanceID, deviceID, step}` | Status confirmation | Prepares device for upgrade installation |
+| `/mgmt_port` | POST | Verify management port | `{flowInstanceID, deviceID, step}` | Port status | Ensures device connectivity post-reboot |
+| `/post_reboot_checks` | POST | Validate post-reboot state | `{flowInstanceID, deviceID, step}` | Health check results | Confirms device stability after reboot |
+| `/device_activation` | POST | Activate device services | `{flowInstanceID, deviceID, step}` | Activation status | Enables device functionality |
+| `/vnf_spinup_and_config` | POST | Start VNF services | `{flowInstanceID, deviceID, step}` | Service status | Final step - brings up virtual network functions |
+| `/stage_upgrade_image` | POST | Stage upgrade image | `{flowInstanceID, deviceID, step}` | Image details | Prepares upgrade files for deployment |
+| `/verify_and_upgrade_bios` | POST | BIOS firmware update | `{flowInstanceID, deviceID, step}` | Update status | Hardware-level firmware upgrade |
+| `/verify_and_upgrade_bluejacket` | POST | Bluejacket update | `{flowInstanceID, deviceID, step}` | Update status | Platform software update |
+| `/verify_and_upgrade_nic` | POST | NIC firmware update | `{flowInstanceID, deviceID, step}` | Update status | Network interface firmware upgrade |
+| `/verify_and_upgrade_ssd` | POST | SSD firmware update | `{flowInstanceID, deviceID, step}` | Update status | Storage firmware upgrade |
+
+### External Call Pattern
+
+All external API calls follow this pattern:
+1. **Logging Start**: Log initiation to Elasticsearch
+2. **HTTP Request**: POST to NFX service with authentication
+3. **Response Validation**: Check for 2xx status codes
+4. **Logging Result**: Log success/failure with details
+5. **Error Handling**: Throw exceptions on failures
+
+### Authentication
+
+External calls support Bearer token authentication:
 ```java
-@Override
-public void execute(DelegateExecution execution) {
-    String deviceId = (String) execution.getVariable("deviceId");
-    String flowId = execution.getProcessInstanceId();
+headers.set("Authorization", "Bearer " + authToken);
+```
 
-    String url = baseUrl + "/endpoint_path";
+## Workflow Process
 
-    try {
-        // Start logging
-        elasticsearchService.logEvent(flowId, deviceId, "OPERATION", "step", "STARTED", "Starting operation");
+The upgrade workflow is defined in `upgradeWorkflow.bpmn20.xml` and follows a comprehensive device upgrade lifecycle.
 
-        // Prepare request
-        var requestBody = Map.of(
-            "flowInstanceID", flowId,
-            "deviceID", deviceId,
-            "step", "operation-step"
-        );
+### Process Flow Overview
 
-        // Set headers
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Content-Type", "application/json");
-        if (authToken != null && !authToken.isBlank()) {
-            headers.set("Authorization", authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken);
-        }
+```
+Start Process
+    ↓
+Device Compatibility Check (Subprocess)
+    ↓
+DTAC Assignment
+    ↓
+Reminder Emails (Parallel Process)
+    ↓
+Re-Scheduling Window (Receive Task)
+    ↓
+Schedule Modifier
+    ↓
+Pre-Upgrade Backup (3 days before)
+    ↓
+Gateway: Staging Flag Check
+    ├── True: Image Staging → Device Compatibility → Reboot
+    └── False: Device Compatibility → Reboot
+    ↓
+Management Port Check
+    ↓
+Post-Reboot Checks
+    ↓
+Device Activation
+    ↓
+VNF Spin-Up
+    ↓
+Flow Complete
+```
 
-        // Make call
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(requestBody, headers);
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+### Key Decision Points
 
+1. **Staging Flag**: Determines whether image staging is needed
+   - `stagingFlag == "true"`: Perform image staging before compatibility checks
+   - `stagingFlag == "false"`: Skip staging, proceed directly to compatibility
+
+2. **Reminder System**: Parallel email reminders at multiple intervals
+   - 7 days before: Weekly reminders if >7 days remaining
+   - 3 days before: Daily reminders until 3 days out
+   - 2 days before: Daily reminders until 2 days out
+   - 1 day before: Daily reminders until 1 day out
+
+3. **Re-scheduling Window**: User-triggered pause point
+   - Process waits at "Re-Scheduling Window" receive task
+   - External trigger required to continue or reschedule
+
+### Timer Events
+
+- **Pre-Upgrade Timer**: Triggers 3 days before scheduled time for backup
+- **Scheduled Time Timer**: Main execution trigger at scheduled datetime
+- **Reminder Timers**: Recurring timers for email notifications
+
+### Error Handling
+
+- All delegate failures are logged and cause process termination
+- Workflow status updated in database on each step
+- Comprehensive error tracking via Elasticsearch
+
+## Delegates Reference
+
+Delegates are Java classes that execute specific workflow steps. All delegates implement `JavaDelegate` and are automatically discovered by Flowable.
+
+| Delegate | Purpose | Operations | Description |
+|----------|---------|------------|-------------|
+| `ScheduleDelegate` | Initial workflow scheduling | Assign to task, set timers | Assigns workflow to employee task, calculates pre-upgrade timing |
+| `ScheduleModifierDelegate` | Handle rescheduling | Update process variables | Processes rescheduling requests and updates workflow timing |
+| `PreUpgradeBackupDelegate` | System backup | Call NFX backup API | Creates device backup before upgrade operations |
+| `ImageStagingDelegate` | Image preparation | Stage upgrade files | Downloads and prepares upgrade images on device |
+| `CheckDeviceDetailsDelegate` | Compatibility validation | Hardware/software checks | Validates device meets upgrade requirements |
+| `VerifyAndUpgradeBiosDelegate` | Firmware update | BIOS version check/update | Ensures BIOS firmware is current |
+| `VerifyAndUpgradeBluejacketDelegate` | Platform update | Bluejacket check/update | Updates platform software layer |
+| `VerifyAndUpgradeNicDelegate` | Network firmware | NIC firmware check/update | Updates network interface firmware |
+| `VerifyAndUpgradeSsdDelegate` | Storage firmware | SSD firmware check/update | Updates storage device firmware |
+| `RebootDeviceDelegate` | Device restart | Controlled reboot | Safely reboots device for upgrade |
+| `MgmtPortDelegate` | Connectivity check | Port validation | Verifies management port accessibility |
+| `PostRebootChecksDelegate` | Health validation | Post-reboot tests | Confirms device health after reboot |
+| `DeviceActivationDelegate` | Service enablement | Activate services | Enables device services post-upgrade |
+| `VnfSpinUpDelegate` | VNF orchestration | Start virtual functions | Launches virtual network functions |
+| `ReminderEmailDelegate` | Notification system | Send emails | Sends scheduled reminder emails to stakeholders |
+
+### Delegate Implementation Pattern
+
+All delegates follow this consistent pattern:
+
+```java
+@Component("DelegateName")
+public class DelegateNameDelegate implements JavaDelegate {
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Autowired
+    private ElasticsearchService elasticsearchService;
+
+    @Override
+    public void execute(DelegateExecution execution) {
+        // Extract variables
+        String deviceId = (String) execution.getVariable("deviceId");
+        String flowId = execution.getProcessInstanceId();
+
+        // Log start
+        elasticsearchService.logEvent(flowId, deviceId, "stage", "step", "STARTED", "message");
+
+        // Make external API call
         // Handle response
-        if (response.getStatusCode().is2xxSuccessful()) {
-            elasticsearchService.logEvent(flowId, deviceId, "OPERATION", "step", "SUCCESS", "Operation completed");
-        } else {
-            elasticsearchService.logEvent(flowId, deviceId, "OPERATION", "step", "FAILED", "Non-2xx response: " + response.getStatusCode());
-            throw new RuntimeException("Operation failed with status " + response.getStatusCode());
-        }
-
-    } catch (Exception e) {
-        elasticsearchService.logEvent(flowId, deviceId, "OPERATION", "step", "FAILED", "Operation failed: " + e.getMessage());
-        throw new RuntimeException("Delegate execution failed", e);
+        // Log result or throw exception
     }
 }
 ```
 
-### 5.3 Authentication Mechanisms
+## Configuration
 
-#### Bearer Token Authentication:
-- Tokens configured via environment variables
-- Automatic "Bearer " prefix addition
-- Support for token rotation
-- Secure token storage practices
+### application.properties
 
-#### Header Construction:
-```java
-HttpHeaders headers = new HttpHeaders();
-headers.set("Content-Type", "application/json");
-if (authToken != null && !authToken.isBlank()) {
-    String token = authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken;
-    headers.set("Authorization", token);
-}
-```
-
-### 5.4 Detailed External Endpoints
-
-#### 1. Device Details Check
-- **Endpoint**: `POST /check_device_details`
-- **Delegate**: `CheckDeviceDetailsDelegate`
-- **Purpose**: Validate device specifications and compatibility
-- **Used In**: Device Compatibility Check sub-process
-
-#### 2. BIOS Upgrade
-- **Endpoint**: `POST /verify_and_upgrade_bios`
-- **Delegate**: `VerifyAndUpgradeBiosDelegate`
-- **Purpose**: Update BIOS firmware to compatible version
-- **Used In**: Compatibility verification phase
-
-#### 3. NIC Upgrade
-- **Endpoint**: `POST /verify_and_upgrade_nic`
-- **Delegate**: `VerifyAndUpgradeNicDelegate`
-- **Purpose**: Update network interface firmware
-- **Used In**: Hardware compatibility checks
-
-#### 4. SSD Upgrade
-- **Endpoint**: `POST /verify_and_upgrade_ssd`
-- **Delegate**: `VerifyAndUpgradeSsdDelegate`
-- **Purpose**: Update storage device firmware
-- **Used In**: Storage compatibility validation
-
-#### 5. Bluejacket Upgrade
-- **Endpoint**: `POST /verify_and_upgrade_bluejacket`
-- **Delegate**: `VerifyAndUpgradeBluejacketDelegate`
-- **Purpose**: Update base system firmware
-- **Used In**: Platform compatibility checks
-
-#### 6. Pre-Upgrade Backup
-- **Endpoint**: `POST /pre_upgrade_backup`
-- **Delegate**: `PreUpgradeBackupDelegate`
-- **Purpose**: Create system backups before upgrade
-- **Used In**: Pre-upgrade preparation
-
-#### 7. Image Staging
-- **Endpoint**: `POST /stage_upgrade_image`
-- **Delegate**: `ImageStagingDelegate`
-- **Purpose**: Prepare upgrade images for deployment
-- **Used In**: Pre-upgrade preparation (conditional)
-
-#### 8. Device Reboot
-- **Endpoint**: `POST /reboot_device`
-- **Delegate**: `RebootDeviceDelegate`
-- **Purpose**: Remotely reboot device during upgrade
-- **Used In**: Upgrade execution phase
-
-#### 9. Management Port Configuration
-- **Endpoint**: `POST /mgmt_port`
-- **Delegate**: `MgmtPortDelegate`
-- **Purpose**: Configure management network interfaces
-- **Used In**: Post-reboot configuration
-
-#### 10. Post-Reboot Checks
-- **Endpoint**: `POST /post_reboot_checks`
-- **Delegate**: `PostRebootChecksDelegate`
-- **Purpose**: Verify system health after reboot
-- **Used In**: Post-upgrade verification
-
-#### 11. Device Activation
-- **Endpoint**: `POST /device_activation`
-- **Delegate**: `DeviceActivationDelegate`
-- **Purpose**: Activate device after successful upgrade
-- **Used In**: Post-upgrade activation
-
-#### 12. VNF Spin-up
-- **Endpoint**: `POST /vnf_spinup_and_config`
-- **Delegate**: `VnfSpinUpDelegate`
-- **Purpose**: Deploy and configure Virtual Network Functions
-- **Used In**: Final upgrade step
-
-### 5.5 Error Handling and Retry Logic
-
-#### Current Implementation:
-- Single attempt with immediate failure
-- Comprehensive error logging
-- Exception propagation to workflow engine
-
-#### Potential Enhancements:
-- Retry mechanisms for transient failures
-- Circuit breaker patterns
-- Exponential backoff strategies
-- Dead letter queues for persistent failures
-
-#### Error Classification:
-- **Transient**: Network timeouts, temporary service unavailability
-- **Permanent**: Authentication failures, invalid requests
-- **Business Logic**: Device not ready, compatibility issues
-
-### 5.6 API Performance and Monitoring
-
-#### Performance Metrics:
-- Response time tracking
-- Success/failure rates
-- Throughput monitoring
-- Error rate analysis
-
-#### Monitoring Integration:
-- All API calls logged to Elasticsearch
-- Correlation IDs for request tracing
-- Performance dashboards
-- Alerting on failure thresholds
-
----
-
-## 6. Workflow Process Deep Dive
-
-### 6.1 Complete Workflow Lifecycle
-
-The upgrade workflow follows a comprehensive lifecycle from initiation to completion:
-
-#### 1. Process Initiation
-- Triggered by batch upload or individual device request
-- Process variables initialized (deviceId, scheduledDate, customerEmail, etc.)
-- Initial validation and setup
-
-#### 2. Device Compatibility Verification
-- Sequential execution of compatibility checks
-- BIOS, NIC, SSD, and platform validation
-- Failure at any step terminates the process
-
-#### 3. Scheduling and Notification Setup
-- DTAC assignment for field technicians
-- Reminder email scheduling (7-day intervals)
-- Reschedule window configuration
-
-#### 4. Pre-Upgrade Preparation
-- Backup creation (3 days before scheduled time)
-- Conditional image staging based on stagingFlag
-- Final reminder sequence activation
-
-#### 5. Upgrade Execution
-- Scheduled timer wait
-- Device reboot and configuration
-- Post-reboot health checks
-- Device activation and VNF deployment
-
-#### 6. Completion
-- Process end event
-- Final status recording
-- Audit trail completion
-
-### 6.2 Device Compatibility Check Phase
-
-This sub-process performs sequential hardware/software validation:
-
-#### Execution Order:
-1. **Check Device Details**: Initial specification validation
-2. **Verify Bluejacket**: Base firmware compatibility
-3. **Verify BIOS**: Motherboard firmware checks
-4. **Verify NIC**: Network interface validation
-5. **Verify SSD**: Storage subsystem verification
-
-#### Failure Handling:
-- Any delegate failure terminates the sub-process
-- Error logged with specific failure reason
-- Process moves to error state
-- Manual intervention may be required
-
-#### Success Path:
-- All validations pass
-- Process variables updated with compatibility status
-- Flow continues to scheduling phase
-
-### 6.3 Scheduling and Notification Phase
-
-#### DTAC Assignment:
-- Automatic assignment based on availability
-- Date range filtering for technician availability
-- Task creation for assigned technician
-
-#### Reminder Email System:
-- Multi-level reminder cascade
-- Timer-based notifications
-- Configurable intervals (7, 3, 2, 1 days before)
-
-#### Reschedule Handling:
-- Message event for reschedule requests
-- Attempt limit enforcement (3 attempts)
-- Email confirmations for approved changes
-
-### 6.4 Pre-Upgrade Preparation
-
-#### Backup Operations:
-- Triggered by boundary timer (3 days before)
-- Comprehensive system backup creation
-- Verification of backup integrity
-
-#### Image Staging:
-- Conditional execution based on stagingFlag
-- Upgrade image preparation and validation
-- Network optimization for large file transfers
-
-#### Final Reminders:
-- Accelerated reminder schedule near upgrade time
-- Daily notifications in final week
-- Stakeholder preparation and coordination
-
-### 6.5 Upgrade Execution
-
-#### Timer Synchronization:
-- Precise timing based on scheduled datetime
-- Timezone-aware calculations
-- Buffer time for preparation
-
-#### Sequential Operations:
-1. **Device Reboot**: Controlled system restart
-2. **Management Port Config**: Network interface setup
-3. **Post-Reboot Checks**: System health verification
-4. **Device Activation**: Service enablement
-5. **VNF Spin-up**: Virtual function deployment
-
-#### Parallel Processing:
-- Some operations may run concurrently
-- Synchronization at key checkpoints
-- Resource contention management
-
-### 6.6 Post-Upgrade Verification
-
-#### Health Checks:
-- System responsiveness validation
-- Service availability confirmation
-- Performance baseline comparison
-- Error log analysis
-
-#### Activation Confirmation:
-- Device status verification
-- Service registration
-- Monitoring system updates
-- Stakeholder notifications
-
-### 6.7 Workflow Completion
-
-#### Success Criteria:
-- All delegates executed successfully
-- External systems confirmed operation
-- No critical errors logged
-- Process variables updated appropriately
-
-#### Completion Actions:
-- End event triggered
-- Final status recorded
-- Audit logs finalized
-- Cleanup operations performed
-
----
-
-## 7. Configuration and Best Practices
-
-### 7.1 Application Properties Configuration
-
-#### Database Configuration:
 ```properties
-# PostgreSQL Connection
+# Application
+spring.application.name=flowable
+server.port=8080
+
+# Database - PostgreSQL
 spring.datasource.url=jdbc:postgresql://localhost:5432/flowable
 spring.datasource.username=postgres
 spring.datasource.password=root
 spring.datasource.driver-class-name=org.postgresql.Driver
+spring.datasource.hikari.connection-init-sql=CREATE SCHEMA IF NOT EXISTS flowable_internal; CREATE SCHEMA IF NOT EXISTS app_data; SET search_path TO app_data, flowable_internal, public
 
-# Connection Pool
-spring.datasource.hikari.maximum-pool-size=20
-spring.datasource.hikari.minimum-idle=5
-spring.datasource.hikari.connection-timeout=30000
-```
+# JPA/Hibernate
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.hibernate.ddl-auto=create
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.default_schema=app_data
 
-#### Flowable Engine Settings:
-```properties
-# Database Schema Management
-flowable.database-schema-update=true
-
-# Async Executor for background tasks
-flowable.async-executor.enabled=true
-flowable.async-executor.core-pool-size=4
-flowable.async-executor.max-pool-size=8
-
-# History levels for audit trails
-flowable.history-level=full
-```
-
-#### External Service Configuration:
-```properties
-# NFX Service Integration
-nfx.service.base.mock.url=http://localhost:8000
-nfx.service.auth.token=${NFX_AUTH_TOKEN:}
-
-# Elasticsearch for logging
+# Elasticsearch
 spring.elasticsearch.uris=http://192.168.5.52:8081
 spring.elasticsearch.connection-timeout=10s
 spring.elasticsearch.socket-timeout=30s
-```
 
-#### Email Configuration:
-```properties
-# SMTP Settings
+# Flowable BPM
+flowable.database-schema=flowable_internal
+flowable.database-schema-update=true
+flowable.process.definition-cache-limit=512
+flowable.async-executor.enabled=true
+flowable.async-executor.core-pool-size=4
+flowable.async-executor.max-pool-size=8
+flowable.history-level=full
+
+# External Services
+nfx.service.base.mock.url=http://localhost:8000
+nfx.service.auth.token=
+
+# Email Configuration
 spring.mail.host=smtp.gmail.com
 spring.mail.port=587
 spring.mail.username=your-email@gmail.com
 spring.mail.password=your-app-password
+spring.mail.protocol=smtp
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
-spring.mail.properties.mail.smtp.starttls
+spring.mail.properties.mail.smtp.starttls.required=true
+spring.mail.properties.mail.smtp.ssl.enable=false
+spring.mail.properties.mail.smtp.ssl.trust=smtp.gmail.com
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SPRING_DATASOURCE_URL` | PostgreSQL connection URL | `jdbc:postgresql://localhost:5432/flowable` |
+| `SPRING_DATASOURCE_USERNAME` | Database username | `postgres` |
+| `SPRING_DATASOURCE_PASSWORD` | Database password | `root` |
+| `SPRING_ELASTICSEARCH_URIS` | Elasticsearch URLs | `http://192.168.5.52:8081` |
+| `NFX_SERVICE_BASE_MOCK_URL` | NFX service base URL | `http://localhost:8000` |
+| `NFX_SERVICE_AUTH_TOKEN` | NFX API authentication token | (empty) |
+| `SPRING_MAIL_USERNAME` | Email username | Gmail address |
+| `SPRING_MAIL_PASSWORD` | Email app password | Gmail app password |
+
+### Key Configuration Notes
+
+- **Database Schemas**: Separate schemas prevent conflicts between Flowable tables and application data
+- **Async Execution**: Flowable async executor improves performance for long-running tasks
+- **History Level**: Full history tracking enables detailed process analytics
+- **Email**: Requires Gmail app password for SMTP authentication
+- **Elasticsearch**: Used for logging and audit trails, not strictly required for basic operation
+
+---
+
+This comprehensive system provides end-to-end workflow management for device upgrades, combining powerful BPM capabilities with robust external integrations and detailed monitoring. The modular architecture supports easy extension and customization for various upgrade scenarios.
