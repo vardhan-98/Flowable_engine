@@ -11,11 +11,11 @@
         <bpmn2:timeDate>${java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).minusDays(3).toString()}</bpmn2:timeDate>
       </bpmn2:timerEventDefinition>
     </bpmn2:boundaryEvent>
-    <bpmn2:serviceTask id="Activity_16dpl0s" name="Schedule Modifier" flowable:async="true" flowable:delegateExpression="${ScheduleModifier}">
+    <bpmn2:serviceTask id="Activity_16dpl0s" name="Schedule Modifier" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${ScheduleModifier}">
       <bpmn2:incoming>Flow_1gq6ek1</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1wgr47l</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_14obmje" name="Pre Upgrade Backup" flowable:async="true" flowable:delegateExpression="${PreUpgradeBackup}">
+    <bpmn2:serviceTask id="Activity_14obmje" name="Pre Upgrade Backup" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${PreUpgradeBackup}">
       <bpmn2:incoming>Flow_0txoykf</bpmn2:incoming>
       <bpmn2:outgoing>Flow_to_scheduled_timer</bpmn2:outgoing>
     </bpmn2:serviceTask>
@@ -26,26 +26,26 @@
         <bpmn2:timeDate>${scheduledUpgradeDateTime}</bpmn2:timeDate>
       </bpmn2:timerEventDefinition>
     </bpmn2:intermediateCatchEvent>
-    <bpmn2:serviceTask id="Activity_01erw02" name="Upgrade Reboot Device" flowable:async="true" flowable:delegateExpression="${RebootDevice}">
+    <bpmn2:serviceTask id="Activity_01erw02" name="Upgrade Reboot Device" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${RebootDevice}">
       <bpmn2:incoming>Flow_0hk05bd</bpmn2:incoming>
       <bpmn2:incoming>Flow_0hifv0n</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1xzsdz5</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_030rvyu" name="Management Port" flowable:async="true" flowable:delegateExpression="${MgmtPort}">
+    <bpmn2:serviceTask id="Activity_030rvyu" name="Management Port" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${MgmtPort}">
       <bpmn2:incoming>Flow_1xzsdz5</bpmn2:incoming>
       <bpmn2:outgoing>Flow_170ar3y</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_0prcbc" name="Post Reboot Checks" flowable:async="true" flowable:delegateExpression="${PostRebootChecks}">
+    <bpmn2:serviceTask id="Activity_0prcbc" name="Post Reboot Checks" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${PostRebootChecks}">
       <bpmn2:incoming>Flow_170ar3y</bpmn2:incoming>
       <bpmn2:outgoing>Flow_170ar3z</bpmn2:outgoing>
       <bpmn2:outgoing>Flow_1ngpuao</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_0ez1b4u" name="Device Activation" flowable:async="true" flowable:delegateExpression="${DeviceActivation}">
+    <bpmn2:serviceTask id="Activity_0ez1b4u" name="Device Activation" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${DeviceActivation}">
       <bpmn2:incoming>Flow_170ar3z</bpmn2:incoming>
       <bpmn2:incoming>Flow_1ngpuao</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1ambkp1</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_1sg1v2u" name="VNF Spin UP" flowable:async="true" flowable:delegateExpression="${VnfSpinUp}">
+    <bpmn2:serviceTask id="Activity_1sg1v2u" name="VNF Spin UP" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VnfSpinUp}">
       <bpmn2:incoming>Flow_1ambkp1</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1nlaeh2</bpmn2:outgoing>
     </bpmn2:serviceTask>
@@ -91,30 +91,30 @@
       <bpmn2:sequenceFlow id="Flow_0gxk781" sourceRef="Activity_0ol9aef" targetRef="Activity_090chyn" />
       <bpmn2:sequenceFlow id="Flow_0nkzcsq" sourceRef="Activity_090chyn" targetRef="Activity_1sceqj1" />
       <bpmn2:sequenceFlow id="Flow_14mrhdz" sourceRef="Activity_1sceqj1" targetRef="Event_1gf5gld" />
-      <bpmn2:serviceTask id="Activity_0xb1r7m" name="Check Device Details" flowable:delegateExpression="${CheckDeviceDetails}">
+      <bpmn2:serviceTask id="Activity_0xb1r7m" name="Check Device Details" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${CheckDeviceDetails}">
         <bpmn2:incoming>Flow_05gc1jf</bpmn2:incoming>
         <bpmn2:outgoing>Flow_04rkbgh</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_0acm6pk" name="Verify and Upgrade Bluejacket" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
+      <bpmn2:serviceTask id="Activity_0acm6pk" name="Verify and Upgrade Bluejacket" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
         <bpmn2:incoming>Flow_04rkbgh</bpmn2:incoming>
         <bpmn2:outgoing>Flow_095xyss</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_090chyn" name="Verify and Upgrade BIOS" flowable:delegateExpression="${VerifyAndUpgradeBios}">
+      <bpmn2:serviceTask id="Activity_090chyn" name="Verify and Upgrade BIOS" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeBios}">
         <bpmn2:incoming>Flow_0gxk781</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0nkzcsq</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_0ol9aef" name="Verify and Upgrade NIC" flowable:delegateExpression="${VerifyAndUpgradeNic}">
+      <bpmn2:serviceTask id="Activity_0ol9aef" name="Verify and Upgrade NIC" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeNic}">
         <bpmn2:incoming>Flow_095xyss</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0gxk781</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_1sceqj1" name="Verify and Upgrade SSD" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
+      <bpmn2:serviceTask id="Activity_1sceqj1" name="Verify and Upgrade SSD" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
         <bpmn2:incoming>Flow_0nkzcsq</bpmn2:incoming>
         <bpmn2:outgoing>Flow_14mrhdz</bpmn2:outgoing>
       </bpmn2:serviceTask>
     </bpmn2:subProcess>
     <bpmn2:sequenceFlow id="Flow_1y5v11j" sourceRef="Activity_1b98x37" targetRef="Activity_0kytnoq" />
     <bpmn2:sequenceFlow id="Flow_1cloo0a" sourceRef="Activity_0kytnoq" targetRef="Activity_19qntoo" />
-    <bpmn2:serviceTask id="Activity_0kytnoq" name="DTAC Assignment" flowable:delegateExpression="${PreUpgradeBackup}">
+    <bpmn2:serviceTask id="Activity_0kytnoq" name="DTAC Assignment" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${PreUpgradeBackup}">
       <bpmn2:incoming>Flow_1y5v11j</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1cloo0a</bpmn2:outgoing>
       <bpmn2:outgoing>Flow_0pr9avx</bpmn2:outgoing>
@@ -126,7 +126,7 @@
       <bpmn2:startEvent id="Event_10gdbuv">
         <bpmn2:outgoing>Flow_0csle0t</bpmn2:outgoing>
       </bpmn2:startEvent>
-      <bpmn2:serviceTask id="Activity_0lpwid2" name="Send Reminder Emails" flowable:delegateExpression="${ReminderEmail}">
+      <bpmn2:serviceTask id="Activity_0lpwid2" name="Send Reminder Emails" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${ReminderEmail}">
         <bpmn2:incoming>Flow_03a1rlo</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0ef8kwn</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -182,7 +182,7 @@
         </bpmn2:timerEventDefinition>
       </bpmn2:intermediateCatchEvent>
       <bpmn2:sequenceFlow id="Flow_0n4qojm" sourceRef="Event_02d89na" targetRef="Activity_1l5w55k" />
-      <bpmn2:serviceTask id="Activity_1l5w55k" name="Reminder Email" flowable:delegateExpression="${ReminderEmail}">
+      <bpmn2:serviceTask id="Activity_1l5w55k" name="Reminder Email" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${ReminderEmail}">
         <bpmn2:incoming>Flow_0n4qojm</bpmn2:incoming>
         <bpmn2:outgoing>Flow_00xv5xq</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -198,7 +198,7 @@
         <bpmn2:incoming>Flow_0bbwitt</bpmn2:incoming>
       </bpmn2:endEvent>
       <bpmn2:sequenceFlow id="Flow_1sxp2gc" sourceRef="Event_13chso6" targetRef="Activity_1xuwemt" />
-      <bpmn2:serviceTask id="Activity_1q08prq" name="Reminder Email" flowable:delegateExpression="${ReminderEmail}">
+      <bpmn2:serviceTask id="Activity_1q08prq" name="Reminder Email" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${ReminderEmail}">
         <bpmn2:incoming>Flow_0jzak8m</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0bbwitt</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -212,7 +212,7 @@
         </bpmn2:timerEventDefinition>
       </bpmn2:intermediateCatchEvent>
       <bpmn2:sequenceFlow id="Flow_0jzak8m" sourceRef="Event_09twwhx" targetRef="Activity_1q08prq" />
-      <bpmn2:serviceTask id="Activity_1xuwemt" name="Reminder Email" flowable:delegateExpression="${ReminderEmail}">
+      <bpmn2:serviceTask id="Activity_1xuwemt" name="Reminder Email" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${ReminderEmail}">
         <bpmn2:incoming>Flow_1sxp2gc</bpmn2:incoming>
         <bpmn2:outgoing>Flow_1p27xku</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -256,11 +256,11 @@
       <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${stagingFlag=="true"}</bpmn2:conditionExpression>
     </bpmn2:sequenceFlow>
     <bpmn2:sequenceFlow id="Flow_1dsenmz" sourceRef="Activity_03zosz7" targetRef="Activity_0qf4otk" />
-    <bpmn2:serviceTask id="Activity_03zosz7" name="Image Staging" flowable:delegateExpression="${ImageStaging}">
+    <bpmn2:serviceTask id="Activity_03zosz7" name="Image Staging" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${ImageStaging}">
       <bpmn2:incoming>Flow_142riqq</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1dsenmz</bpmn2:outgoing>
     </bpmn2:serviceTask>
-    <bpmn2:serviceTask id="Activity_0eznmud" name="Image Staging" flowable:delegateExpression="${ImageStaging}">
+    <bpmn2:serviceTask id="Activity_0eznmud" name="Image Staging" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${ImageStaging}">
       <bpmn2:incoming>Flow_1jib5tk</bpmn2:incoming>
       <bpmn2:outgoing>Flow_0hifv0n</bpmn2:outgoing>
     </bpmn2:serviceTask>
@@ -290,23 +290,23 @@
       <bpmn2:endEvent id="Event_0kjadla">
         <bpmn2:incoming>Flow_03sghvc</bpmn2:incoming>
       </bpmn2:endEvent>
-      <bpmn2:serviceTask id="Activity_19tnv6g" name="Check Device Details" flowable:delegateExpression="${CheckDeviceDetails}">
+      <bpmn2:serviceTask id="Activity_19tnv6g" name="Check Device Details" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${CheckDeviceDetails}">
         <bpmn2:incoming>Flow_0knaohn</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0sk4phc</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_1d7k01k" name="Verify and Upgrade Bluejacket" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
+      <bpmn2:serviceTask id="Activity_1d7k01k" name="Verify and Upgrade Bluejacket" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
         <bpmn2:incoming>Flow_0sk4phc</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0dxbo31</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_1az32bv" name="Verify and Upgrade BIOS" flowable:delegateExpression="${VerifyAndUpgradeBios}">
+      <bpmn2:serviceTask id="Activity_1az32bv" name="Verify and Upgrade BIOS" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeBios}">
         <bpmn2:incoming>Flow_061a1ty</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0mbij2z</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_1xhvfc4" name="Verify and Upgrade NIC" flowable:delegateExpression="${VerifyAndUpgradeNic}">
+      <bpmn2:serviceTask id="Activity_1xhvfc4" name="Verify and Upgrade NIC" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeNic}">
         <bpmn2:incoming>Flow_0dxbo31</bpmn2:incoming>
         <bpmn2:outgoing>Flow_061a1ty</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_0zfsenw" name="Verify and Upgrade SSD" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
+      <bpmn2:serviceTask id="Activity_0zfsenw" name="Verify and Upgrade SSD" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
         <bpmn2:incoming>Flow_0mbij2z</bpmn2:incoming>
         <bpmn2:outgoing>Flow_03sghvc</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -332,23 +332,23 @@
       <bpmn2:endEvent id="Event_15jwm4a">
         <bpmn2:incoming>Flow_0u7wb2t</bpmn2:incoming>
       </bpmn2:endEvent>
-      <bpmn2:serviceTask id="Activity_1slo57f" name="Check Device Details" flowable:delegateExpression="${CheckDeviceDetails}">
+      <bpmn2:serviceTask id="Activity_1slo57f" name="Check Device Details" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${CheckDeviceDetails}">
         <bpmn2:incoming>Flow_0u0w5x2</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0otnvrv</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_0wcid09" name="Verify and Upgrade Bluejacket" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
+      <bpmn2:serviceTask id="Activity_0wcid09" name="Verify and Upgrade Bluejacket" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
         <bpmn2:incoming>Flow_0otnvrv</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0my9e40</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_19xapud" name="Verify and Upgrade BIOS" flowable:delegateExpression="${VerifyAndUpgradeBios}">
+      <bpmn2:serviceTask id="Activity_19xapud" name="Verify and Upgrade BIOS" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeBios}">
         <bpmn2:incoming>Flow_0crgtm7</bpmn2:incoming>
         <bpmn2:outgoing>Flow_193aa3w</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_0yq1srp" name="Verify and Upgrade NIC" flowable:delegateExpression="${VerifyAndUpgradeNic}">
+      <bpmn2:serviceTask id="Activity_0yq1srp" name="Verify and Upgrade NIC" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeNic}">
         <bpmn2:incoming>Flow_0my9e40</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0crgtm7</bpmn2:outgoing>
       </bpmn2:serviceTask>
-      <bpmn2:serviceTask id="Activity_1jro6vo" name="Verify and Upgrade SSD" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
+      <bpmn2:serviceTask id="Activity_1jro6vo" name="Verify and Upgrade SSD" flowable:async="true" flowable:exclusive="true" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
         <bpmn2:incoming>Flow_193aa3w</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0u7wb2t</bpmn2:outgoing>
       </bpmn2:serviceTask>
