@@ -74,6 +74,7 @@
     <bpmn2:subProcess id="Activity_1b98x37" name="Device Compatibility Check">
       <bpmn2:extensionElements>
         <flowable:inputOutput />
+        <flowable:executionListener expression="${execution.setVariable(&#34;step&#34;, &#34;first-check-device-compatibility&#34;)}" event="start" />
       </bpmn2:extensionElements>
       <bpmn2:incoming>Flow_1</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1y5v11j</bpmn2:outgoing>
@@ -91,9 +92,7 @@
       <bpmn2:sequenceFlow id="Flow_14mrhdz" sourceRef="Activity_1sceqj1" targetRef="Event_1gf5gld" />
       <bpmn2:serviceTask id="Activity_0xb1r7m" name="Check Device Details" flowable:async="true" flowable:delegateExpression="${CheckDeviceDetails}">
         <bpmn2:extensionElements>
-          <flowable:inputOutput>
-            <flowable:inputParameter name="step">first-check-device-compatibility</flowable:inputParameter>
-          </flowable:inputOutput>
+          <flowable:inputOutput />
         </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_05gc1jf</bpmn2:incoming>
         <bpmn2:outgoing>Flow_04rkbgh</bpmn2:outgoing>
