@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BPMN Process Instance Visualizer</title>
+  <!-- bpmn-js CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@10.2.1/dist/assets/diagram-js.css" type="text/css" />
+  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@10.2.1/dist/assets/bpmn-font/css/bpmn.css" type="text/css" />
+  <!-- bpmn-js -->
+  <script src="https://unpkg.com/bpmn-js@10.2.1/dist/bpmn-viewer.production.min.js"></script>
+  <!-- pako for optional gzip decompression -->
+  <script src="https://unpkg.com/pako@2.1.0/dist/pako.min.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #canvas {
+      height: 80vh;
+      border: 2px solid #e5e7eb;
+      border-radius: .5rem;
+      overflow: auto;
+      background:#f9fafb;
+    }
+    .overlay-text {
+      pointer-events: none;
+      font-weight: 600;
+      text-shadow: 0 0 4px white;
+      z-index: 100;
+    }
+    .pulse-active {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .flow-path {
+      animation: flowAnimation 2s ease-in-out infinite;
+    }
+    @keyframes flowAnimation {
+      0%, 100% { opacity: 0.6; stroke-dashoffset: 0; }
+      50% { opacity: 1; stroke-dashoffset: 10px; }
+    }
+    .progressing-highlight {
+      transition: all 0.5s ease-in-out;
+    }
+    .highlight-executed { 
+      fill: rgba(34, 197, 94, 0.15) !important; 
+      stroke: #10b981 !important; 
+      stroke-width: 3px !important; 
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+    }
+    .highlight-active { 
+      fill: rgba(59, 130, 246, 0.25) !important; 
+      stroke: #3b82f6 !important; 
+      stroke-width: 3px !important; 
+      animation: pulse 1s infinite; 
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+    }
+    .highlight-failed { 
+      fill: rgba(239, 68, 68, 0.15) !important; 
+      stroke: #ef4444 !important; 
+      stroke-width: 3px !important; 
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    }
+    .highlight-path { 
+      stroke: #8b5cf6 !important; 
+      stroke-width: 5px !important; 
+      stroke-dasharray: 10,5; 
+      animation: flowAnimation 2s linear infinite; 
+      filter: drop-shadow(0 0 3px rgba(139, 92, 246, 0.5));
+    }
+    .highlight-subprocess {
+      fill: rgba(251, 191, 36, 0.1) !important; 
+      stroke: #f59e0b !important; 
+      stroke-width: 2px !important;
+    }
+    .execution-overlay {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      max-width: 200px;
+    }
+    .execution-time {
+      font-size: 10px;
+      color: #6b7280;
+    }
+    .mini-map {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 200px;
+      height: 150px;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-6">
+      <h1 class="text-4xl font-bold text-gray-800 mb-2">BPMN Process Instance Visualizer</h1>
+      <p class="text-gray-600">Enter a Process Instance ID to fetch and view the execution path and current state with visual flow highlighting. Toggle between static and animated views for best insights.</p>
+    </div>
+    <!-- Input Form -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+      <div class="flex flex-col sm:flex-row gap-4">
+        <input type="text" id="processInstanceId"
+               placeholder="Enter Process Instance ID (e.g., 05588860-c139-11f0-9c24-74d4dd3058fd)"
+               class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"/>
+        <button id="loadBtn"
+                class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
+          Load Diagram
+        </button>
+        <button id="refreshBtn"
+                class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed hidden whitespace-nowrap">
+          Refresh State
+        </button>
+        <button id="toggleViewBtn"
+                class="px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed hidden whitespace-nowrap">
+          Toggle Animated View
+        </button>
+      </div>
+      <div id="error" class="mt-3 text-red-600 text-sm font-medium hidden"></div>
+      <div id="progress" class="mt-3 hidden">
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 rounded-full bg-blue-500 animate-pulse"></div>
+          <p class="text-sm text-gray-600">Loading diagram... <span id="progressText" class="font-semibold text-gray-700"></span></p>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+          <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Loading State -->
+    <div id="loading" class="text-center py-16 text-gray-500 hidden">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+      <p class="text-lg font-medium">Loading diagram...</p>
+    </div>
+    <!-- Diagram Canvas -->
+    <div id="canvas" class="hidden shadow-lg relative"></div>
+    <!-- Mini Map -->
+    <div id="miniMap" class="mini-map hidden">
+      <div class="p-2 text-xs font-semibold text-gray-700 border-b">Process Overview</div>
+      <div id="miniMapContent" class="p-2"></div>
+    </div>
+    <!-- Legend -->
+    <div id="legend" class="mt-6 bg-white p-6 rounded-lg shadow-md border border-gray-200 hidden">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">Execution Status Legend</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+          <div class="w-6 h-6 rounded border-3 border-green-600 bg-green-100"></div>
+          <div>
+            <span class="font-semibold text-gray-800 text-sm">Executed</span>
+            <p class="text-xs text-gray-600">Completed tasks</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div class="w-6 h-6 rounded border-3 border-blue-600 bg-blue-100 pulse-active"></div>
+          <div>
+            <span class="font-semibold text-gray-800 text-sm">Active</span>
+            <p class="text-xs text-gray-600">Currently running</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+          <div class="w-6 h-6 rounded border-3 border-red-600 bg-red-100"></div>
+          <div>
+            <span class="font-semibold text-gray-800 text-sm">Failed</span>
+            <p class="text-xs text-gray-600">Interrupted tasks</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+          <div class="w-6 h-6 rounded border-3 border-purple-600 bg-purple-100 flow-path"></div>
+          <div>
+            <span class="font-semibold text-gray-800 text-sm">Flow Path</span>
+            <p class="text-xs text-gray-600">Execution sequence (animated in progress view)</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+          <div class="w-6 h-6 rounded border-2 border-amber-600 bg-amber-100"></div>
+          <div>
+            <span class="font-semibold text-gray-800 text-sm">Subprocess</span>
+            <p class="text-xs text-gray-600">Contains executed tasks</p>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 text-sm text-gray-600">
+        <p><strong>View Mode:</strong> <span id="viewModeIndicator" class="font-semibold text-indigo-600">Static</span> - Click "Toggle Animated View" to see progressing flow.</p>
+      </div>
+    </div>
+    <!-- Statistics Panel -->
+    <div id="statistics" class="mt-6 hidden">
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500">
+          <p class="text-sm text-gray-600 font-medium">Executed Tasks</p>
+          <p id="statExecuted" class="text-2xl font-bold text-green-600">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
+          <p class="text-sm text-gray-600 font-medium">Active Tasks</p>
+          <p id="statActive" class="text-2xl font-bold text-blue-600">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500">
+          <p class="text-sm text-gray-600 font-medium">Failed Tasks</p>
+          <p id="statFailed" class="text-2xl font-bold text-red-600">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-gray-400">
+          <p class="text-sm text-gray-600 font-medium">Total Tasks</p>
+          <p id="statTotal" class="text-2xl font-bold text-gray-600">0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const viewer = new BpmnJS({ container: '#canvas' });
+    const overlays = viewer.get('overlays');
+    const elementRegistry = viewer.get('elementRegistry');
+    const canvas = viewer.get('canvas');
+    const loadBtn = document.getElementById('loadBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const toggleViewBtn = document.getElementById('toggleViewBtn');
+    const input = document.getElementById('processInstanceId');
+    const errorDiv = document.getElementById('error');
+    const loading = document.getElementById('loading');
+    const canvasEl = document.getElementById('canvas');
+    const legend = document.getElementById('legend');
+    const progressEl = document.getElementById('progress');
+    const progressText = document.getElementById('progressText');
+    const progressBar = document.getElementById('progressBar');
+    const statistics = document.getElementById('statistics');
+    const viewModeIndicator = document.getElementById('viewModeIndicator');
+    const miniMap = document.getElementById('miniMap');
+    const miniMapContent = document.getElementById('miniMapContent');
+    
+    let isAnimatedView = false;
+    let currentData = null;
+    let animationInterval = null;
+    let subprocessElements = new Map(); // Store subprocess elements for better handling
+    
+    // ---------- CONFIG ----------
+    const API_BASE = 'http://localhost:8080';
+    const TIMEOUT_MS = 120000;
+    // ---------------------------
+    
+    loadBtn.addEventListener('click', loadDiagram);
+    refreshBtn.addEventListener('click', loadDiagram);
+    toggleViewBtn.addEventListener('click', toggleAnimatedView);
+    input.addEventListener('keypress', e => e.key === 'Enter' && loadDiagram());
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        loadDiagram();
+      }
+    });
+    
+    function toggleAnimatedView() {
+      isAnimatedView = !isAnimatedView;
+      toggleViewBtn.textContent = isAnimatedView ? 'Switch to Static View' : 'Toggle Animated View';
+      viewModeIndicator.textContent = isAnimatedView ? 'Animated' : 'Static';
+      toggleViewBtn.classList.toggle('bg-indigo-600', !isAnimatedView);
+      toggleViewBtn.classList.toggle('bg-orange-600', isAnimatedView);
+      if (currentData) {
+        if (isAnimatedView) {
+          startAnimation();
+        } else {
+          stopAnimation();
+          highlightExecution(currentData, false);
+        }
+      }
+    }
+    
+    function startAnimation() {
+      if (animationInterval) clearInterval(animationInterval);
+      let step = 0;
+      const executed = currentData.executedActivities || [];
+      animationInterval = setInterval(() => {
+        // Clear previous highlights
+        elementRegistry.getAll().forEach(el => {
+          canvas.removeMarker(el, 'highlight-path');
+          canvas.removeMarker(el, 'progressing-highlight');
+        });
+        if (step < executed.length) {
+          const currentStep = executed.slice(0, step + 1);
+          highlightExecution({...currentData, executedActivities: currentStep}, true);
+          step++;
+        } else {
+          clearInterval(animationInterval);
+          highlightExecution(currentData, true);
+        }
+      }, 1500); // Adjust speed as needed
+    }
+    
+    function stopAnimation() {
+      if (animationInterval) {
+        clearInterval(animationInterval);
+        animationInterval = null;
+      }
+    }
+    
+    function isValidProcessInstanceId(id) {
+      return id && id.length > 3 && /^[a-zA-Z0-9_:-]+$/.test(id);
+    }
+    
+    async function loadDiagram() {
+      const processInstanceId = input.value.trim();
+      if (!processInstanceId) return showError('Please enter a Process Instance ID');
+      if (!isValidProcessInstanceId(processInstanceId)) return showError('Invalid Process Instance ID format');
+      clearDiagram();
+      showLoading(true);
+      showError('');
+      showProgress(true, 'Connecting...');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      try {
+        const url = `${API_BASE}/api/process-instance/${encodeURIComponent(processInstanceId)}/diagram`;
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('Process instance not found. Check the ID and try again.');
+          } else if (response.status === 500) {
+            throw new Error('Server error. Check server logs for details.');
+          } else {
+            const txt = await response.text();
+            throw new Error(`HTTP ${response.status}: ${txt}`);
+          }
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let received = 0;
+        const chunks = [];
+        const contentLength = response.headers.get('content-length');
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.length;
+          const percent = contentLength ? Math.round((received / contentLength) * 100) : 0;
+          updateProgress(percent, `Received ${formatBytes(received)}...`);
+        }
+        const fullChunk = new Uint8Array(received);
+        let pos = 0;
+        for (const chunk of chunks) {
+          fullChunk.set(chunk, pos);
+          pos += chunk.length;
+        }
+        let jsonText = decoder.decode(fullChunk);
+        const data = JSON.parse(jsonText);
+        if (data.compressed && data.bpmnXml) {
+          try {
+            const binary = atob(data.bpmnXml);
+            const binArray = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) binArray[i] = binary.charCodeAt(i);
+            data.bpmnXml = pako.inflate(binArray, { to: 'string' });
+          } catch (e) {
+            console.warn('Failed to decompress BPMN XML', e);
+          }
+        }
+        showProgress(false);
+        updateProgress(100, 'Rendering...');
+        await viewer.importXML(data.bpmnXml);
+        viewer.on('import.done', (event) => {
+          const { error, warnings } = event;
+          if (error) {
+            showError('Failed to render BPMN diagram: ' + error.message);
+            return;
+          }
+          if (warnings && warnings.length > 0) {
+            console.warn('BPMN import warnings:', warnings);
+          }
+          // Identify subprocess elements for better handling
+          identifySubprocesses();
+          currentData = data;
+          setTimeout(() => {
+            highlightExecution(data, false);
+            canvas.zoom('fit-viewport', { ensureVisible: true, margin: 50 });
+            updateMiniMap();
+          }, 200);
+          toggleViewBtn.classList.remove('hidden');
+          refreshBtn.classList.remove('hidden');
+          miniMap.classList.remove('hidden');
+        });
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          showError(`Request timed out after ${TIMEOUT_MS/1000}s. Try a smaller process.`);
+        } else if (err.name === 'TypeError' && err.message.includes('fetch')) {
+          showError(`Network error. Is backend running on ${API_BASE}?`);
+        } else {
+          showError(err.message || 'Failed to load diagram');
+        }
+        console.error(err);
+      } finally {
+        clearTimeout(timeoutId);
+        showLoading(false);
+        showProgress(false);
+      }
+    }
+    
+    function identifySubprocesses() {
+      subprocessElements.clear();
+      elementRegistry.getAll().forEach(el => {
+        if (el.type === 'bpmn:SubProcess') {
+          // Find all child elements of this subprocess
+          const children = elementRegistry.filter(child => 
+            child.parent && child.parent.id === el.id
+          );
+          subprocessElements.set(el.id, children);
+        }
+      });
+    }
+    
+    function highlightExecution(data, animated = false) {
+      canvasEl.classList.remove('hidden');
+      legend.classList.remove('hidden');
+      statistics.classList.remove('hidden');
+      const executed = new Set(data.executedActivities || []);
+      const active = new Set(data.activeActivities || []);
+      const details = data.activityDetails || {};
+      const failed = Object.entries(details)
+        .filter(([id, d]) => executed.has(id) && !d.endTime)
+        .map(([id]) => id);
+      const flowSequence = data.executedActivities || [];
+      console.log('Execution data:', { executed: [...executed], active: [...active], failed, flowSequence, details });
+      
+      // Clear existing markers
+      elementRegistry.getAll().forEach(el => {
+        ['highlight-executed', 'highlight-active', 'highlight-failed', 'highlight-path', 'progressing-highlight', 'highlight-subprocess'].forEach(marker => {
+          canvas.removeMarker(el, marker);
+        });
+        if (animated) {
+          canvas.addMarker(el, 'progressing-highlight');
+        }
+      });
+      overlays.clear();
+      
+      // Highlight executed activities
+      executed.forEach(id => {
+        const el = elementRegistry.get(id);
+        if (el) {
+          canvas.addMarker(el, 'highlight-executed');
+          const detail = details[id];
+          addOverlay(el, '✓', '#10b981', false, detail);
+          
+          // Check if this element is inside a subprocess
+          if (el.parent && subprocessElements.has(el.parent.id)) {
+            const parentEl = elementRegistry.get(el.parent.id);
+            if (parentEl) {
+              canvas.addMarker(parentEl, 'highlight-subprocess');
+            }
+          }
+        }
+      });
+      
+      // Highlight active activities with pulse
+      active.forEach(id => {
+        const el = elementRegistry.get(id);
+        if (el) {
+          canvas.addMarker(el, 'highlight-active');
+          const detail = details[id];
+          addOverlay(el, '▶', '#3b82f6', true, detail);
+          
+          // Check if this element is inside a subprocess
+          if (el.parent && subprocessElements.has(el.parent.id)) {
+            const parentEl = elementRegistry.get(el.parent.id);
+            if (parentEl) {
+              canvas.addMarker(parentEl, 'highlight-subprocess');
+            }
+          }
+        }
+      });
+      
+      // Highlight failed activities
+      failed.forEach(id => {
+        const el = elementRegistry.get(id);
+        if (el) {
+          canvas.addMarker(el, 'highlight-failed');
+          const detail = details[id];
+          addOverlay(el, '✕', '#ef4444', false, detail);
+          
+          // Check if this element is inside a subprocess
+          if (el.parent && subprocessElements.has(el.parent.id)) {
+            const parentEl = elementRegistry.get(el.parent.id);
+            if (parentEl) {
+              canvas.addMarker(parentEl, 'highlight-subprocess');
+            }
+          }
+        }
+      });
+      
+      // Highlight execution flow path
+      highlightFlowPath(flowSequence, animated);
+      
+      // Update statistics
+      const totalTasks = elementRegistry.getAll().filter(el => 
+        el.type === 'bpmn:Task' || 
+        el.type === 'bpmn:ServiceTask' || 
+        el.type === 'bpmn:UserTask' || 
+        el.type === 'bpmn:SubProcess' || 
+        el.type === 'bpmn:StartEvent' || 
+        el.type === 'bpmn:EndEvent'
+      ).length;
+      updateStatistics(executed.size, active.size, failed.length, totalTasks);
+      
+      canvas.zoom('fit-viewport', { ensureVisible: true, margin: 50 });
+    }
+    
+    function highlightFlowPath(flowSequence, animated = false) {
+      for (let i = 0; i < flowSequence.length - 1; i++) {
+        const currentId = flowSequence[i];
+        const nextId = flowSequence[i + 1];
+        const currentEl = elementRegistry.get(currentId);
+        const nextEl = elementRegistry.get(nextId);
+        
+        if (currentEl && nextEl) {
+          const outgoing = currentEl.outgoing || [];
+          outgoing.forEach(connection => {
+            if (connection.target && connection.target.id === nextId) {
+              canvas.addMarker(connection, 'highlight-path');
+              if (animated) {
+                canvas.addMarker(connection, 'progressing-highlight');
+              }
+            }
+          });
+          
+          // Also check for flow through subprocesses
+          if (currentEl.parent && subprocessElements.has(currentEl.parent.id)) {
+            const parentEl = elementRegistry.get(currentEl.parent.id);
+            if (parentEl) {
+              canvas.addMarker(parentEl, 'highlight-subprocess');
+            }
+          }
+        }
+      }
+    }
+    
+    function addOverlay(element, symbol, color, pulse = false, detail = null) {
+      const startTime = detail && detail.startTime ? formatTime(detail.startTime) : '';
+      const endTime = detail && detail.endTime ? formatTime(detail.endTime) : '';
+      
+      let html = `<div class="overlay-text ${pulse ? 'pulse-active' : ''}" style="
+        background: ${color}; color: white; padding: 2px 6px; border-radius: 50%;
+        font-size: 10px; transform: translate(-50%, -50%); white-space: nowrap;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 600;
+        width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+      ">${symbol}</div>`;
+      
+      // Add detailed overlay with execution times
+      if (detail) {
+        html += `<div class="execution-overlay" style="position: absolute; top: 25px; left: 5px;">
+          <div class="font-semibold text-xs">${element.businessObject.name || element.id}</div>
+          ${startTime ? `<div class="execution-time">Start: ${startTime}</div>` : ''}
+          ${endTime ? `<div class="execution-time">End: ${endTime}</div>` : ''}
+        </div>`;
+      }
+      
+      overlays.add(element.id, { position: { top: -5, left: 5 }, html });
+    }
+    
+    function updateMiniMap() {
+      if (!currentData) return;
+      
+      // Create a simplified representation of the process
+      const executed = new Set(currentData.executedActivities || []);
+      const active = new Set(currentData.activeActivities || []);
+      
+      let miniMapHtml = '<div class="text-xs space-y-1">';
+      
+      // Add process summary
+      miniMapHtml += `<div class="font-semibold">Process: UpgradeFlow</div>`;
+      miniMapHtml += `<div>Executed: ${executed.size} | Active: ${active.size}</div>`;
+      
+      // Add subprocess summary if any
+      subprocessElements.forEach((children, subprocessId) => {
+        const subprocessEl = elementRegistry.get(subprocessId);
+        if (subprocessEl) {
+          const subprocessName = subprocessEl.businessObject.name || subprocessId;
+          const executedInSubprocess = Array.from(children).filter(child => executed.has(child.id)).length;
+          if (executedInSubprocess > 0) {
+            miniMapHtml += `<div class="ml-2">- ${subprocessName}: ${executedInSubprocess}/${children.length}</div>`;
+          }
+        }
+      });
+      
+      miniMapHtml += '</div>';
+      miniMapContent.innerHTML = miniMapHtml;
+    }
+    
+    function updateStatistics(executed, active, failed, total) {
+      document.getElementById('statExecuted').textContent = executed;
+      document.getElementById('statActive').textContent = active;
+      document.getElementById('statFailed').textContent = failed;
+      document.getElementById('statTotal').textContent = total;
+    }
+    
+    function formatTime(isoString) {
+      if (!isoString) return '';
+      return new Date(isoString).toLocaleTimeString();
+    }
+    
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    function showError(msg) {
+      errorDiv.textContent = msg;
+      errorDiv.classList.toggle('hidden', !msg);
+    }
+    
+    function showLoading(show) {
+      loading.classList.toggle('hidden', !show);
+    }
+    
+    function showProgress(show, text = '') {
+      progressEl.classList.toggle('hidden', !show);
+      if (show) progressText.textContent = text;
+    }
+    
+    function updateProgress(percent, text) {
+      progressBar.style.width = percent + '%';
+      if (text) progressText.textContent = text;
+    }
+    
+    function clearDiagram() {
+      overlays.clear();
+      viewer.clear();
+      canvasEl.classList.add('hidden');
+      legend.classList.add('hidden');
+      statistics.classList.add('hidden');
+      miniMap.classList.add('hidden');
+      refreshBtn.classList.add('hidden');
+      toggleViewBtn.classList.add('hidden');
+      toggleViewBtn.textContent = 'Toggle Animated View';
+      toggleViewBtn.classList.remove('bg-orange-600');
+      toggleViewBtn.classList.add('bg-indigo-600');
+      viewModeIndicator.textContent = 'Static';
+      isAnimatedView = false;
+      stopAnimation();
+      currentData = null;
+      subprocessElements.clear();
+    }
+  </script>
+</body>
+</html>

@@ -8,7 +8,7 @@
     <bpmn2:boundaryEvent id="Event_1shs7a9" name="PreUpgradeTimer" attachedToRef="Activity_19qntoo">
       <bpmn2:outgoing>Flow_0txoykf</bpmn2:outgoing>
       <bpmn2:timerEventDefinition id="TimerEventDefinition_0oktgsr">
-        <bpmn2:timeDate>${java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).minusDays(3).toString()}</bpmn2:timeDate>
+        <bpmn2:timeDate>${flowUtils.minusDays(scheduledUpgradeDateTime, 3)}</bpmn2:timeDate>
       </bpmn2:timerEventDefinition>
     </bpmn2:boundaryEvent>
     <bpmn2:serviceTask id="Activity_16dpl0s" name="Schedule Modifier" flowable:async="true" flowable:delegateExpression="${ScheduleModifier}">
@@ -73,7 +73,6 @@
     </bpmn2:receiveTask>
     <bpmn2:subProcess id="Activity_1b98x37" name="Device Compatibility Check">
       <bpmn2:extensionElements>
-        <flowable:inputOutput />
         <flowable:executionListener expression="${execution.setVariable(&#34;step&#34;, &#34;first-check-device-compatibility&#34;)}" event="start" />
       </bpmn2:extensionElements>
       <bpmn2:incoming>Flow_1</bpmn2:incoming>
@@ -91,9 +90,6 @@
       <bpmn2:sequenceFlow id="Flow_0nkzcsq" sourceRef="Activity_090chyn" targetRef="Activity_1sceqj1" />
       <bpmn2:sequenceFlow id="Flow_14mrhdz" sourceRef="Activity_1sceqj1" targetRef="Event_1gf5gld" />
       <bpmn2:serviceTask id="Activity_0xb1r7m" name="Check Device Details" flowable:async="true" flowable:delegateExpression="${CheckDeviceDetails}">
-        <bpmn2:extensionElements>
-          <flowable:inputOutput />
-        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_05gc1jf</bpmn2:incoming>
         <bpmn2:outgoing>Flow_04rkbgh</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -143,7 +139,7 @@
         <bpmn2:outgoing>Flow_10kzj2f</bpmn2:outgoing>
       </bpmn2:exclusiveGateway>
       <bpmn2:sequenceFlow id="Flow_03a1rlo" sourceRef="Gateway_022aamm" targetRef="Activity_0lpwid2">
-        <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${(java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).toInstant().toEpochMilli() - java.time.Instant.now().toEpochMilli()) / (1000.0 * 60 * 60 * 24) &gt; 7}</bpmn2:conditionExpression>
+        <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${flowUtils.daysBetweenNow(scheduledUpgradeDateTime) > 7}</bpmn2:conditionExpression>
       </bpmn2:sequenceFlow>
       <bpmn2:sequenceFlow id="Flow_10kzj2f" sourceRef="Gateway_022aamm" targetRef="Event_05lbofa" />
       <bpmn2:sequenceFlow id="Flow_0ef8kwn" sourceRef="Activity_0lpwid2" targetRef="Event_1a2ohl4" />
@@ -180,7 +176,7 @@
         <bpmn2:incoming>Flow_1245hwo</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0n4qojm</bpmn2:outgoing>
         <bpmn2:timerEventDefinition id="TimerEventDefinition_19c40f6">
-          <bpmn2:timeDate>${java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).minusDays(3).toString()}</bpmn2:timeDate>
+          <bpmn2:timeDate>${flowUtils.minusDays(scheduledUpgradeDateTime, 3)}</bpmn2:timeDate>
         </bpmn2:timerEventDefinition>
       </bpmn2:intermediateCatchEvent>
       <bpmn2:sequenceFlow id="Flow_0n4qojm" sourceRef="Event_02d89na" targetRef="Activity_1l5w55k" />
@@ -192,7 +188,7 @@
         <bpmn2:incoming>Flow_00xv5xq</bpmn2:incoming>
         <bpmn2:outgoing>Flow_1sxp2gc</bpmn2:outgoing>
         <bpmn2:timerEventDefinition id="TimerEventDefinition_1yclxj6">
-          <bpmn2:timeDate>${java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).minusDays(2).toString()}</bpmn2:timeDate>
+          <bpmn2:timeDate>${flowUtils.minusDays(scheduledUpgradeDateTime, 2)}</bpmn2:timeDate>
         </bpmn2:timerEventDefinition>
       </bpmn2:intermediateCatchEvent>
       <bpmn2:sequenceFlow id="Flow_00xv5xq" sourceRef="Activity_1l5w55k" targetRef="Event_13chso6" />
@@ -210,7 +206,7 @@
         <bpmn2:incoming>Flow_1xyowbf</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0jzak8m</bpmn2:outgoing>
         <bpmn2:timerEventDefinition id="TimerEventDefinition_1jcsrvq">
-          <bpmn2:timeDate>${java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).minusDays(1).toString()}</bpmn2:timeDate>
+          <bpmn2:timeDate>${flowUtils.minusDays(scheduledUpgradeDateTime, 1)}</bpmn2:timeDate>
         </bpmn2:timerEventDefinition>
       </bpmn2:intermediateCatchEvent>
       <bpmn2:sequenceFlow id="Flow_0jzak8m" sourceRef="Event_09twwhx" targetRef="Activity_1q08prq" />
@@ -226,7 +222,7 @@
       </bpmn2:exclusiveGateway>
       <bpmn2:sequenceFlow id="Flow_1xyowbf" sourceRef="Gateway_0jazjgs" targetRef="Event_09twwhx" />
       <bpmn2:sequenceFlow id="Flow_1245hwo" sourceRef="Gateway_0jazjgs" targetRef="Event_02d89na">
-        <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${(java.time.ZonedDateTime.parse(scheduledUpgradeDateTime).toInstant().toEpochMilli() - java.time.Instant.now().toEpochMilli()) / (1000.0 * 60 * 60 * 24) &gt; 3}</bpmn2:conditionExpression>
+        <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${flowUtils.daysBetweenNow(scheduledUpgradeDateTime) > 3}</bpmn2:conditionExpression>
       </bpmn2:sequenceFlow>
       <bpmn2:sequenceFlow id="Flow_049z9dn" sourceRef="Event_06o68sf" targetRef="Gateway_0jazjgs" />
       <bpmn2:textAnnotation id="TextAnnotation_06ux6jg">
@@ -281,6 +277,7 @@
     <bpmn2:subProcess id="Activity_1nf5tab" name="Device Compatibility Check">
       <bpmn2:extensionElements>
         <flowable:inputOutput />
+        <flowable:executionListener expression="${execution.setVariable(&#34;step&#34;, &#34;check-device-compatibility&#34;)}" event="start" />
       </bpmn2:extensionElements>
       <bpmn2:incoming>Flow_0s96oyv</bpmn2:incoming>
       <bpmn2:outgoing>Flow_142riqq</bpmn2:outgoing>
@@ -291,11 +288,6 @@
         <bpmn2:incoming>Flow_03sghvc</bpmn2:incoming>
       </bpmn2:endEvent>
       <bpmn2:serviceTask id="Activity_19tnv6g" name="Check Device Details" flowable:async="true" flowable:delegateExpression="${CheckDeviceDetails}">
-        <bpmn2:extensionElements>
-          <flowable:inputOutput>
-            <flowable:inputParameter name="step">check-device-compatibility</flowable:inputParameter>
-          </flowable:inputOutput>
-        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_0knaohn</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0sk4phc</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -325,7 +317,7 @@
     <bpmn2:sequenceFlow id="Flow_142riqq" sourceRef="Activity_1nf5tab" targetRef="Activity_03zosz7" />
     <bpmn2:subProcess id="Activity_04894rp" name="Device Compatibility Check">
       <bpmn2:extensionElements>
-        <flowable:inputOutput />
+        <flowable:executionListener expression="${execution.setVariable(&#34;step&#34;, &#34;check-device-compatibility&#34;)}" event="start" />
       </bpmn2:extensionElements>
       <bpmn2:incoming>Flow_1yywc19</bpmn2:incoming>
       <bpmn2:outgoing>Flow_1jib5tk</bpmn2:outgoing>

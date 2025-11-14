@@ -35,13 +35,14 @@ def log_to_es(flow_id, device_id, stage, step, status, message, details=None):
     try:
         url = "http://192.168.5.52:8081/device-upgrade-logs/_doc/" + doc["id"]
         headers = {"Content-Type": "application/json"}
-        response = requests.put(url, headers=headers, data=json.dumps(doc), timeout=10)
+        # response = requests.put(url, headers=headers, data=json.dumps(doc), timeout=10)
 
-        if response.status_code in [200, 201]:
-            print(f"Successfully logged to ES via HTTP: {response.status_code}")
-            return doc
-        else:
-            print(f"HTTP request failed: {response.status_code} - {response.text}")
+        # if response.status_code in [200, 201]:
+        #     print(f"Successfully logged to ES via HTTP: {response.status_code}")
+        #     return doc
+        # else:
+        #     print(f"HTTP request failed: {response.status_code} - {response.text}")
+        return doc
     except Exception as e:
         print(f"HTTP logging failed: {e}")
 

@@ -39,17 +39,23 @@ public class CheckDeviceDetailsDelegate implements JavaDelegate {
         String flowId = execution.getProcessInstanceId();
         String step = (String) execution.getVariable("step");
 
+        // Provide default value if step is null
+        if (step == null || step.trim().isEmpty()) {
+            step = "device-compatibility-check"; // Default fallback
+        }
+
         String url = baseUrl + "/check_device_details";
 
         try {
             elasticsearchService.logEvent(flowId, deviceId, "DeviceUpgrade", step, "STARTED",
                     "Checking device details via " + url);
+            System.out.println("step: " + step + ", flowId: " + flowId + ", deviceId: " + deviceId);
 
-            var requestBody = java.util.Map.of(
-                "flowInstanceID", flowId,
-                "deviceID", deviceId,
-                "step", step
-            );
+            // Use HashMap instead of Map.of() to avoid null value issues
+            var requestBody = new java.util.HashMap<String, String>();
+            requestBody.put("flowInstanceID", flowId);
+            requestBody.put("deviceID", deviceId);
+            requestBody.put("step", step);
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");

@@ -55,7 +55,7 @@ public class ElasticsearchService {
             // Index to Elasticsearch
             //elasticsearchOperations.save(logEntry);
 
-            log.info("Logged event: {} - {} - {} - {}", flowId, deviceId, step, status);
+            log.info("Logged event: {} - {} - {} - {}", flowId, message, step, status);
 
             // Update WorkflowExecution entity based on the current step logging
             updateWorkflowExecution(flowId, deviceId, step, status, message);

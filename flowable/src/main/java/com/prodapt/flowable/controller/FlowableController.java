@@ -99,6 +99,7 @@ public class FlowableController {
 					.header("Content-Disposition", "attachment; filename=batch_upgrade_template.xlsx")
 					.body(template);
 		} catch (Exception e) {
+			log.error("Error generating batch upgrade template", e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
 		}
 	}
@@ -112,7 +113,9 @@ public class FlowableController {
 			}
 			return ResponseEntity.ok(response);
 		} catch (Exception e) {
-			Map<String, Object> errorResponse = Map.of("message", "Error processing Excel file: " + e.getMessage());
+			log.error("Error processing Excel file upload", e);
+			String errorMessage = e.getMessage() != null ? e.getMessage() : "Unknown error occurred";
+			Map<String, Object> errorResponse = Map.of("message", "Error processing Excel file: " + errorMessage);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
 		}
 	}

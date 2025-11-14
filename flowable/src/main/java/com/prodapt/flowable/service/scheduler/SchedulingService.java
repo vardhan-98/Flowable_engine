@@ -100,7 +100,7 @@ public class SchedulingService {
 					}
 				}
 				variables.put("assignedDTAC", device.getAssignedDtac());
-				ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("Process_1", variables);
+				ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("UpgradeFlow", variables);
 
 				WorkflowExecution workflowExecution = new WorkflowExecution();
 				workflowExecution.setFlowInstanceId(processInstance.getId());
@@ -194,7 +194,6 @@ public class SchedulingService {
 				}
 			}
 		}
-
 		if (!validationErrors.isEmpty()) {
 			Map<String, Object> errorResponse = new HashMap<>();
 			errorResponse.put("message", "Validation errors found in Excel file");
@@ -205,7 +204,7 @@ public class SchedulingService {
 
 		// Convert to DeviceRequest
 		List<DeviceRequest> devices = rows.stream().map(this::convertToDeviceRequest).toList();
-
+		System.out.println(devices);
 		// Get device IDs for lookup
 		List<String> deviceIds = devices.stream().map(DeviceRequest::getDeviceId).distinct().toList();
 
@@ -259,15 +258,19 @@ public class SchedulingService {
 
 		// Process new devices immediately
 		List<String> newDevicesProcessed = new ArrayList<>();
+		List<String> failedProcesses = new ArrayList<>();
 		if (!newDevicesToProcess.isEmpty()) {
 			Map<String, Object> result = startBatchUpgrade(newDevicesToProcess);
 			@SuppressWarnings("unchecked")
 			List<String> processes = (List<String>) result.get("processes");
 			if (processes != null) {
-				newDevicesProcessed.addAll(processes.stream()
-					.filter(p -> !p.contains("FAILED"))
-					.map(p -> p.split(": ")[0])
-					.toList());
+				for (String process : processes) {
+					if (process.contains("FAILED")) {
+						failedProcesses.add(process);
+					} else {
+						newDevicesProcessed.add(process.split(": ")[0]);
+					}
+				}
 			}
 		}
 
@@ -290,15 +293,28 @@ public class SchedulingService {
 			response.setMessage("Batch upgrade completed successfully");
 		}
 
-		return Map.of(
-			"message", response.getMessage(),
-			"overwriteId", response.getOverwriteId(),
-			"overwrites", response.getOverwrites(),
-			"newDevicesProcessed", response.getNewDevicesProcessed().size(),
-			"duplicatesSkipped", response.getDuplicatesSkipped(),
-			"failedDevices", response.getFailedDevices(),
-			"totalDevices", response.getTotalDevices()
-		);
+		// Build response map conditionally based on whether there are overwrites
+		Map<String, Object> result = new HashMap<>();
+		result.put("message", response.getMessage());
+		result.put("newDevicesProcessed", response.getNewDevicesProcessed().size());
+		result.put("duplicatesSkipped", response.getDuplicatesSkipped());
+		result.put("failedDevices", response.getFailedDevices());
+		result.put("totalDevices", response.getTotalDevices());
+
+		// Include failed processes if any
+		if (!failedProcesses.isEmpty()) {
+			result.put("failedProcesses", failedProcesses);
+		}
+
+		// Only include overwrite fields if there are overwrites pending
+		if (response.getOverwriteId() != null) {
+			result.put("overwriteId", response.getOverwriteId());
+		}
+		if (response.getOverwrites() != null && !response.getOverwrites().isEmpty()) {
+			result.put("overwrites", response.getOverwrites());
+		}
+
+		return result;
 	}
 
 	public Map<String, Object> confirmBatchUpgradeOverwrites(String overwriteId) {
