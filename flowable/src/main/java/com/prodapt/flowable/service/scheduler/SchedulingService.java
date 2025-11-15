@@ -91,10 +91,11 @@ public class SchedulingService {
 				if (device.getScheduledZoneDateTime() != null && !device.getScheduledZoneDateTime().trim().isEmpty()) {
 					try {
 						ZonedDateTime scheduledTime = ZonedDateTime.parse(device.getScheduledZoneDateTime());
-						variables.put("scheduledUpgradeDateTime", scheduledTime);
+						// Convert to Instant for Flowable timer compatibility
+						variables.put("scheduledUpgradeDateTime", scheduledTime.toInstant());
 
 						ZonedDateTime preUpgradeTime = scheduledTime.minusDays(7);
-						variables.put("preUpgradeDateTime", preUpgradeTime);
+						variables.put("preUpgradeDateTime", preUpgradeTime.toInstant());
 					} catch (Exception e) {
 						// Continue without scheduled time
 					}
@@ -171,14 +172,23 @@ public class SchedulingService {
 			// Skip header row
 			for (int i = 1; i <= sheet.getLastRowNum(); i++) {
 				Row row = sheet.getRow(i);
-				if (row == null) continue;
+				if (row == null || isRowEmpty(row)) continue;
 
 				BatchUpgradeRow batchRow = new BatchUpgradeRow();
 				try {
-					batchRow.setSerialNumber((int) row.getCell(0).getNumericCellValue());
+					// Parse serial number
+					batchRow.setSerialNumber(parseSerialNumber(row.getCell(0)));
+					
+					// Parse uCPE hostname
 					batchRow.setUCpeHostName(getCellValueAsString(row.getCell(1)));
-					batchRow.setDate(getCellValueAsString(row.getCell(2)));
-					batchRow.setTime(getCellValueAsString(row.getCell(3)));
+
+					// Parse date - handles both string and date formatted cells
+					batchRow.setDate(parseDateCell(row.getCell(2)));
+
+					// Parse time - handles both string and date/time formatted cells
+					batchRow.setTime(parseTimeCell(row.getCell(3)));
+
+					// Parse DTAC and email
 					batchRow.setAssignedDtacAttuid(getCellValueAsString(row.getCell(4)));
 					batchRow.setCustomerEmail(getCellValueAsString(row.getCell(5)));
 
@@ -190,6 +200,7 @@ public class SchedulingService {
 						rows.add(batchRow);
 					}
 				} catch (Exception e) {
+					log.error("Error parsing row {}: {}", i + 1, e.getMessage());
 					validationErrors.add("Row " + (i + 1) + ": Error parsing row - " + e.getMessage());
 				}
 			}
@@ -204,7 +215,7 @@ public class SchedulingService {
 
 		// Convert to DeviceRequest
 		List<DeviceRequest> devices = rows.stream().map(this::convertToDeviceRequest).toList();
-		System.out.println(devices);
+		
 		// Get device IDs for lookup
 		List<String> deviceIds = devices.stream().map(DeviceRequest::getDeviceId).distinct().toList();
 
@@ -369,9 +380,10 @@ public class SchedulingService {
 					try {
 						Map<String, Object> variables = new HashMap<>();
 						if (overwrite.getChanges().contains("scheduledTime") && overwrite.getNewValues().getScheduledTime() != null) {
-							variables.put("scheduledUpgradeDateTime", overwrite.getNewValues().getScheduledTime());
+							// Convert to Instant for Flowable timer compatibility
+							variables.put("scheduledUpgradeDateTime", overwrite.getNewValues().getScheduledTime().toInstant());
 							ZonedDateTime preUpgradeTime = overwrite.getNewValues().getScheduledTime().minusDays(7);
-							variables.put("preUpgradeDateTime", preUpgradeTime);
+							variables.put("preUpgradeDateTime", preUpgradeTime.toInstant());
 						}
 						if (overwrite.getChanges().contains("assignedDtac")) {
 							variables.put("assignedDTAC", overwrite.getNewValues().getAssignedDtac());
@@ -422,48 +434,152 @@ public class SchedulingService {
 		return response;
 	}
 
-    public com.prodapt.flowable.entity.Task assignWorkflowToTask(ZonedDateTime scheduledTime, String assignedDtac, WorkflowExecution workflow) {
-        // Find employee
-        com.prodapt.flowable.entity.Employee employee = employeeRepository.findByAttUid(assignedDtac)
-            .orElseThrow(() -> new RuntimeException("Employee not found: " + assignedDtac));
+	public com.prodapt.flowable.entity.Task assignWorkflowToTask(ZonedDateTime scheduledTime, String assignedDtac, WorkflowExecution workflow) {
+		// Find employee
+		com.prodapt.flowable.entity.Employee employee = employeeRepository.findByAttUid(assignedDtac)
+			.orElseThrow(() -> new RuntimeException("Employee not found: " + assignedDtac));
 
-        // Check if task already exists for this employee and time
-        Optional<com.prodapt.flowable.entity.Task> existingTaskOpt = taskRepository.findByAssignedEmployeeAttUidAndStartTime(assignedDtac, scheduledTime);
+		// Check if task already exists for this employee and time
+		Optional<com.prodapt.flowable.entity.Task> existingTaskOpt = taskRepository.findByAssignedEmployeeAttUidAndStartTime(assignedDtac, scheduledTime);
 
-        if (existingTaskOpt.isPresent()) {
-            // Append to existing task
-            com.prodapt.flowable.entity.Task existingTask = existingTaskOpt.get();
-            existingTask.getWorkflows().add(workflow);
-            existingTask.setWorkflowCount(existingTask.getWorkflowCount() + 1);
-            workflow.setTask(existingTask);
-            return taskRepository.save(existingTask);
-        } else {
-            // Create new task
-            com.prodapt.flowable.entity.Task newTask = new com.prodapt.flowable.entity.Task();
-            newTask.setId(UUID.randomUUID().toString());
-            newTask.setStartTime(scheduledTime);
-            newTask.setEndTime(scheduledTime.plusHours(1)); // Assume 1 hour duration
-            newTask.setAssignedEmployee(employee);
-            newTask.setWorkflows(new ArrayList<>(List.of(workflow)));
-            newTask.setWorkflowCount(1);
-            workflow.setTask(newTask);
-            return taskRepository.save(newTask);
-        }
-    }
+		if (existingTaskOpt.isPresent()) {
+			// Append to existing task
+			com.prodapt.flowable.entity.Task existingTask = existingTaskOpt.get();
+			existingTask.getWorkflows().add(workflow);
+			existingTask.setWorkflowCount(existingTask.getWorkflowCount() + 1);
+			workflow.setTask(existingTask);
+			return taskRepository.save(existingTask);
+		} else {
+			// Create new task
+			com.prodapt.flowable.entity.Task newTask = new com.prodapt.flowable.entity.Task();
+			newTask.setId(UUID.randomUUID().toString());
+			newTask.setStartTime(scheduledTime);
+			newTask.setEndTime(scheduledTime.plusHours(1));
+			newTask.setAssignedEmployee(employee);
+			newTask.setWorkflows(new ArrayList<>(List.of(workflow)));
+			newTask.setWorkflowCount(1);
+			workflow.setTask(newTask);
+			return taskRepository.save(newTask);
+		}
+	}
 
+	/**
+	 * Check if a row is completely empty
+	 */
+	private boolean isRowEmpty(Row row) {
+		for (int i = 0; i < 6; i++) {
+			Cell cell = row.getCell(i);
+			if (cell != null && cell.getCellType() != org.apache.poi.ss.usermodel.CellType.BLANK 
+				&& !getCellValueAsString(cell).isEmpty()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Parse serial number from cell, handling both numeric and string formats
+	 */
+	private Integer parseSerialNumber(Cell cell) {
+		if (cell == null) {
+			throw new IllegalArgumentException("Serial Number is required");
+		}
+		
+		String value = getCellValueAsString(cell);
+		if (value.isEmpty()) {
+			throw new IllegalArgumentException("Serial Number is required");
+		}
+		
+		try {
+			return Integer.parseInt(value);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Serial Number must be a valid number");
+		}
+	}
+
+	/**
+	 * Parse date cell, handling both string (DD-MM-YYYY) and date formatted cells
+	 */
+	private String parseDateCell(Cell cell) {
+		if (cell == null) {
+			return "";
+		}
+
+		// Handle date-formatted cells
+		if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+			java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy");
+			return sdf.format(cell.getDateCellValue());
+		}
+
+		// Handle string cells
+		String dateStr = getCellValueAsString(cell);
+		if (!dateStr.isEmpty()) {
+			// Check if it's already in the correct format or needs conversion
+			if (dateStr.contains("/")) {
+				// Convert DD/MM/YYYY to DD-MM-YYYY
+				dateStr = dateStr.replace("/", "-");
+			}
+		}
+		
+		return dateStr;
+	}
+
+	/**
+	 * Parse time cell, handling both string (HH:mm) and date/time formatted cells
+	 */
+	private String parseTimeCell(Cell cell) {
+		if (cell == null) {
+			return "";
+		}
+
+		// Handle date/time formatted cells
+		if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+			java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm");
+			return sdf.format(cell.getDateCellValue());
+		}
+
+		// Handle string cells
+		String timeStr = getCellValueAsString(cell);
+		if (!timeStr.isEmpty()) {
+			// Remove seconds if present (HH:mm:ss -> HH:mm)
+			if (timeStr.matches("\\d{2}:\\d{2}:\\d{2}")) {
+				timeStr = timeStr.substring(0, 5);
+			}
+			// Handle 12-hour format if needed
+			timeStr = timeStr.trim();
+		}
+		
+		return timeStr;
+	}
+
+	/**
+	 * Extract cell value as string, handling different cell types
+	 */
 	private String getCellValueAsString(Cell cell) {
-		if (cell == null) return "";
+		if (cell == null) {
+			return "";
+		}
+		
 		switch (cell.getCellType()) {
 			case STRING:
 				return cell.getStringCellValue().trim();
 			case NUMERIC:
-				if (DateUtil.isCellDateFormatted(cell)) {
-					return cell.getDateCellValue().toString(); // Handle dates if needed
-				} else {
-					return String.valueOf((int) cell.getNumericCellValue());
+				// Return integer if it's a whole number, otherwise decimal
+				double numValue = cell.getNumericCellValue();
+				if (numValue == Math.floor(numValue)) {
+					return String.valueOf((int) numValue);
 				}
+				return String.valueOf(numValue);
 			case BOOLEAN:
 				return String.valueOf(cell.getBooleanCellValue());
+			case FORMULA:
+				// Evaluate formula and return result
+				try {
+					return cell.getStringCellValue().trim();
+				} catch (IllegalStateException e) {
+					return String.valueOf(cell.getNumericCellValue());
+				}
+			case BLANK:
 			default:
 				return "";
 		}

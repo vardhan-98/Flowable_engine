@@ -187,9 +187,10 @@ def verify_and_upgrade_bluejacket(request: DeviceRequest):
     log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Bluejacket version is up to date", {"version_status": "current"})
     log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Bluejacket verification completed", {"bluejacket_status": "Verified"})
 
-    results = {"bluejacket_version": "2.1.0", "upgrade_status": "Not Required"}
+    results = {"bluejacket_version": "2.1.0", "upgrade_status": "Not Required","stagingFlag": True}
     doc = log_to_es(request.flowInstanceID, request.deviceID, "Upgrade", request.step, "SUCCESS", "Bluejacket check completed", results)
-    return doc
+    print("Bluejacket stagingflag set to True", results)
+    return results
 
 @app.post("/verify_and_upgrade_nic")
 def verify_and_upgrade_nic(request: DeviceRequest):
