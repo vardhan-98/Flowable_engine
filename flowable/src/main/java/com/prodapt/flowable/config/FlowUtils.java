@@ -41,6 +41,8 @@ public class FlowUtils {
             Instant targetInstant = parseFlexibleInstant(dateTime);
             Instant now = Instant.now();
             long secondsDiff = targetInstant.getEpochSecond() - now.getEpochSecond();
+            System.err.println(dateTime+" "+ now.toString()+" "+secondsDiff);
+            System.out.println(secondsDiff / ( 60 * 60 * 24)); 
             return secondsDiff / (1000.0 * 60 * 60 * 24);
         } catch (Exception e) {
             throw new RuntimeException("Error parsing date/time: " + dateTime, e);
