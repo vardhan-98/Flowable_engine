@@ -1,0 +1,529 @@
+.upgrade-dashboard {
+  min-height: 100vh;
+  background-color: #F9FAFB;
+}
+
+.dashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  background-color: white;
+  border-radius: 5px;
+  padding: 0px 10px;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1F2937;
+  margin-bottom: 0.25rem;
+}
+
+/* .dashboard-subtitle {
+  color: #000;
+  background-color: #F2F9FD;
+  padding: 10px;
+  font-size: 1.125rem;
+  font-weight: 600;
+} */
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.project-name {
+  font-size: 0.875rem;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.timer-grid {
+  display: flex;
+  gap: 1rem;
+  text-align: right;
+}
+
+.timer-item {
+  display: flex;
+  flex-direction: column;
+  padding-top: 5px;
+}
+
+.timer-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1599D2;
+  background-color: #EDF6F9;
+  text-align: center;
+  padding: 0px 5px;
+}
+
+.timer-label {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+/* .metrics-grid {
+  display: flex;
+  grid-template-columns: repeat(6, 1fr);
+  margin-bottom: 1.5rem;
+  justify-content: space-between;
+  padding: 15px;
+} */
+
+.metric-card {
+  border-left: 4px solid;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.metric-card-cyan {
+  /* border-color: #22D3EE; */
+  border: 2px solid #0199DC;
+  /* background-color: #ECFEFF; */
+  color: #0099DC;
+}
+
+.metric-card-yellow {
+  border-color: #FCD34D;
+  background-color: #FEFCE8;
+}
+
+.metric-card-blue {
+  border-color: #60A5FA;
+  background-color: #EFF6FF;
+}
+
+.metric-card-purple {
+  border-color: #A78BFA;
+  background-color: #F5F3FF;
+}
+
+.metric-card-red {
+  border-color: #F87171;
+  background-color: #FEF2F2;
+}
+
+.metric-card-green {
+  border-color: #4ADE80;
+  background-color: #F0FDF4;
+}
+
+.metric-title {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-bottom: 0.25rem;
+}
+
+.metric-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1F2937;
+}
+
+.metric-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #9CA3AF;
+}
+
+.charts-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-card,
+.contract-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  background-color: #F2F9FD;
+  padding: 10px;
+  ;
+}
+
+.chart-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.maximize-btn {
+  padding: 0.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s;
+}
+
+.maximize-btn:hover {
+  background-color: #F3F4F6;
+}
+
+.maximize-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #6B7280;
+}
+
+.failure-content {
+  display: flex;
+  /* grid-template-columns: repeat(2, 1fr); */
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.failure-chart {
+  height: 16rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 220px;
+  /* adjust as needed */
+  height: 220px;
+  /* keeps it circular */
+  margin: auto;
+}
+
+.failure-legend {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+
+  flex: 1;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.legend-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.legend-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  color: #374151;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.legend-value {
+  font-weight: 500;
+  color: #1F2937;
+}
+
+.regional-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  /* padding: 1.5rem; */
+  padding: 2.5rem 1.5rem 0rem 1.5rem;
+}
+
+.region-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.region-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.region-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.region-percent {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.progress-bar-container {
+  position: relative;
+  width: 100%;
+  height: 0.5rem;
+  background-color: #E5E7EB;
+  border-radius: 9999px;
+  overflow: visible;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* .progress-marker {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  background-color: white;
+  border: 2px solid #2563EB;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+} */
+
+.contract-grid {
+  display: flex;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  justify-content: space-around;
+  padding: 1.5rem;
+}
+
+.contract-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.contract-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 1rem;
+}
+
+.contract-chart {
+  width: 10rem;
+  height: 10rem;
+  position: relative;
+}
+
+/* .contract-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+} */
+
+/* .contract-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.contract-legend-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+}
+
+.contract-legend-label {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
+
+.contract-legend-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1F2937;
+} */
+
+@media (max-width: 1280px) {
+  .metrics-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .contract-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+
+  .failure-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* .mainCard {
+  background-color: white;
+  border-radius: 5px;
+}
+ */
+
+
+/* ===== Each Card ===== */
+.contract-item {
+  flex: 1 1 30%;
+  background-color: #D9D9D921;
+;
+  border-radius: 12px;
+  padding: 24px 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  transition: box-shadow 0.2s ease;
+  min-width: 260px;
+}
+
+.contract-item:hover {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+
+
+.contract-legend {
+  width: 70%;
+  margin-top: 12px;
+  padding-top: 8px;
+}
+
+.contract-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dotted #d1d5db; /* light dotted line */
+}
+
+.contract-legend-item:last-child {
+  border-bottom: none;
+}
+
+.contract-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.contract-legend-label {
+  flex: 1;
+  font-size: 13px;
+  color: #4b5563; /* soft gray */
+  text-align: left;
+  display: flex;
+  align-items: center;
+}
+
+.contract-legend-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827; /* darker gray for percentage */
+}
+
+
+
+
+
+
+.mainCard {
+  padding: 10px;
+  background: #f5f6fa;
+}
+
+.dashboard-subtitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 1.5rem;
+  justify-content: space-between;
+  padding: 15px;
+}
+
+.metric-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease-in-out;
+}
+
+.metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.metric-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  text-align: start;
+}
+
+.metric-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.metric-icon {
+  width: 18px;
+  height: 18px;
+}

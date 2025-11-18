@@ -1,0 +1,374 @@
+/* CalendarView.css - Neo Fancy Theme (Event-focused with glossy background) */
+/* Container */
+.calendar-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0; /* allows flex children to shrink correctly */
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 248, 255, 0.9) 100%);
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.12);
+}
+
+.calendar-element {
+  flex: 1; /* 👈 take all remaining vertical space */
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Enhanced EC styling with beautiful colors */
+.ec {
+  --ec-today-bg-color: none !important;
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 8px 32px rgba(59, 130, 246, 0.15),
+    0 4px 16px rgba(124, 58, 237, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+}
+/* Add a subtle animated overlay for extra visual appeal */
+.ec::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent);
+  animation: shimmer 3s ease-in-out infinite;
+  z-index: 1;
+}
+@keyframes shimmer {
+  0% { left: -100%; }
+  50% { left: 100%; }
+  100% { left: 100%; }
+}
+/* Event chips - IMPROVED */
+.ec-event {
+  background: linear-gradient(135deg, #0099DC 0%, #8b5cf6 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+  padding: 4px 8px !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3), 0 2px 6px rgba(139, 92, 246, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 2;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  z-index: 999 !important;
+}
+.ec-event:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4), 0 4px 8px rgba(139, 92, 246, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.4) !important;
+}
+.ec-event::before {
+  display: none !important;
+}
+.ec-event .ec-event-title {
+  font-weight: 600 !important;
+  font-size: 11px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.ec-event .ec-event-time {
+  opacity: 0.9 !important;
+  font-size: 10px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.ec-event-resizer {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0 0 10px 10px;
+}
+
+/* Custom tooltip styles */
+.ec-event[data-tooltip] {
+  position: relative;
+  z-index: 9999 !important; /* Ensure event is above other elements */
+  margin-top: 2px !important;
+}
+
+.ec-event[data-tooltip]:hover::after {
+
+  content: attr(data-tooltip);
+  position: absolute;
+  /* bottom: calc(100% + 12px);  */
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  /* background: linear-gradient(
+    135deg,
+    rgba(17, 24, 39, 0.95),
+    rgba(44, 62, 80, 0.95)
+  ); */
+  /* background: linear-gradient(135deg, #0099DC 0%, #8b5cf6 100%); */
+  background: black;
+  color: #ffffff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;   /* ✅ ensures \n becomes line breaks */
+  width: 300px;
+  max-width: 90vw;
+  z-index: 9999 !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.ec-event[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Tooltip arrow */
+.ec-event[data-tooltip]:hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: rgba(17, 24, 39, 0.95);
+  z-index: 1001;
+}
+
+/* Adjust for events near the top of viewport */
+.ec-event[data-tooltip].top-edge:hover::after {
+  bottom: auto;
+  top: calc(100% + 12px);
+}
+
+.ec-event[data-tooltip].top-edge:hover::before {
+  bottom: auto;
+  top: calc(100% + 4px);
+  border-top-color: transparent;
+  border-bottom-color: rgba(17, 24, 39, 0.95);
+}
+
+
+/* Improved header styling */
+.ec-header {
+  background: linear-gradient(to right, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+.ec-toolbar-title {
+  color: #4338ca !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+.ec-button {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.8), rgba(139, 92, 246, 0.8)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+.ec-button:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(139, 92, 246, 0.9)) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3) !important;
+}
+.ec-day-header {
+  background: rgba(255, 255, 255, 0.5) !important;
+  color: #4338ca !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2) !important;
+}
+.ec-day-head {
+  display: none !important;
+}
+.ec-toolbar {
+  height: 30px;
+}
+.ec-time-grid .ec-slot {
+  border-bottom: 1px dashed rgba(99, 102, 241, 0.2) !important;
+}
+.ec-time-grid .ec-slot-label {
+  color: #6366f1 !important;
+  font-weight: 500 !important;
+}
+/* Custom header controls overlay (right-aligned) */
+.calendar-controls {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  z-index: 10; /* above .ec::before (z-index: 1) */
+  pointer-events: none; /* allow underlying header to be interactive except our buttons */
+}
+.calendar-controls .cal-btn,
+.calendar-controls .cal-icon-btn {
+  pointer-events: auto;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, #0099DC 0%, #8b5cf6 100%) !important;
+  color: #ffffff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
+}
+.calendar-controls .cal-btn:hover,
+.calendar-controls .cal-icon-btn:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(139, 92, 246, 0.9));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+}
+.calendar-controls .cal-btn {
+  font-size: 16px;
+  line-height: 1;
+}
+.calendar-controls .cal-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px; /* emoji size */
+  padding: 0 10px;
+}
+.calendar-controls .cal-picker {
+  position: relative;
+}
+.calendar-controls .date-popover {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  padding: 8px;
+  background: #ffffff;
+  border: 1px solid rgba(2, 6, 23, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 10px 20px rgba(2, 6, 23, 0.18);
+  z-index: 20;
+}
+.calendar-controls .date-popover input[type="date"] {
+  padding: 6px 8px;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 6px;
+  outline: none;
+}
+/* Inline mini calendar inside date popover */
+.calendar-controls .date-popover {
+  pointer-events: auto;
+}
+.mini-cal {
+  width: 260px;
+}
+.mini-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.mini-cal-title {
+  font-weight: 600;
+  color: #4338ca;
+}
+.mini-cal-nav {
+  pointer-events: auto;
+  height: 28px;
+  width: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(2, 6, 23, 0.1);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.15));
+  color: #4338ca;
+  cursor: pointer;
+}
+.mini-cal-nav:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.25));
+}
+.mini-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.mini-cal-wd {
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+}
+.mini-cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.mini-cal-empty {
+  height: 28px;
+}
+.mini-cal-day {
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mini-cal-day:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+.mini-cal-day.today {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+  font-weight: 700;
+}
+.mini-cal-day.selected {
+  background: linear-gradient(135deg, #0099DC, #8b5cf6);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+.mini-cal-day.selected.today {
+  box-shadow: inset 0 0 0 2px #ef4444;
+  border-color: #ef4444;
+}
+@media (max-width: 640px) {
+  .calendar-controls {
+    top: 6px;
+    right: 8px;
+    gap: 6px;
+  }
+  .calendar-controls .cal-btn,
+  .calendar-controls .cal-icon-btn {
+    height: 26px;
+    min-width: 26px;
+    padding: 0 6px;
+    border-radius: 6px;
+  }
+}
+/* .fc-timegrid-slot {
+  height: 60px !important;
+} */
+
+.ec-timegrid__row {
+  height: 60px !important;
+}
