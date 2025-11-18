@@ -90,22 +90,37 @@
       <bpmn2:sequenceFlow id="Flow_0nkzcsq" sourceRef="Activity_090chyn" targetRef="Activity_1sceqj1" />
       <bpmn2:sequenceFlow id="Flow_14mrhdz" sourceRef="Activity_1sceqj1" targetRef="Event_1gf5gld" />
       <bpmn2:serviceTask id="Activity_0xb1r7m" name="Check Device Details" flowable:async="true" flowable:delegateExpression="${CheckDeviceDetails}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_05gc1jf</bpmn2:incoming>
         <bpmn2:outgoing>Flow_04rkbgh</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_0acm6pk" name="Verify and Upgrade Bluejacket" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_04rkbgh</bpmn2:incoming>
         <bpmn2:outgoing>Flow_095xyss</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_090chyn" name="Verify and Upgrade BIOS" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeBios}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_0gxk781</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0nkzcsq</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_0ol9aef" name="Verify and Upgrade NIC" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeNic}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_095xyss</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0gxk781</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_1sceqj1" name="Verify and Upgrade SSD" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_0nkzcsq</bpmn2:incoming>
         <bpmn2:outgoing>Flow_14mrhdz</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -288,22 +303,37 @@
         <bpmn2:incoming>Flow_03sghvc</bpmn2:incoming>
       </bpmn2:endEvent>
       <bpmn2:serviceTask id="Activity_19tnv6g" name="Check Device Details" flowable:async="true" flowable:delegateExpression="${CheckDeviceDetails}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_0knaohn</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0sk4phc</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_1d7k01k" name="Verify and Upgrade Bluejacket" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_0sk4phc</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0dxbo31</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_1az32bv" name="Verify and Upgrade BIOS" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeBios}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_061a1ty</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0mbij2z</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_1xhvfc4" name="Verify and Upgrade NIC" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeNic}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_0dxbo31</bpmn2:incoming>
         <bpmn2:outgoing>Flow_061a1ty</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_0zfsenw" name="Verify and Upgrade SSD" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_0mbij2z</bpmn2:incoming>
         <bpmn2:outgoing>Flow_03sghvc</bpmn2:outgoing>
       </bpmn2:serviceTask>
@@ -329,6 +359,7 @@
       </bpmn2:endEvent>
       <bpmn2:serviceTask id="Activity_1slo57f" name="Check Device Details" flowable:async="true" flowable:delegateExpression="${CheckDeviceDetails}">
         <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
           <flowable:inputOutput>
             <flowable:inputParameter name="step">check-device-compatibility</flowable:inputParameter>
           </flowable:inputOutput>
@@ -337,18 +368,30 @@
         <bpmn2:outgoing>Flow_0otnvrv</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_0wcid09" name="Verify and Upgrade Bluejacket" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeBluejacket}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_0otnvrv</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0my9e40</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_19xapud" name="Verify and Upgrade BIOS" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeBios}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_0crgtm7</bpmn2:incoming>
         <bpmn2:outgoing>Flow_193aa3w</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_0yq1srp" name="Verify and Upgrade NIC" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeNic}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_0my9e40</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0crgtm7</bpmn2:outgoing>
       </bpmn2:serviceTask>
       <bpmn2:serviceTask id="Activity_1jro6vo" name="Verify and Upgrade SSD" flowable:async="true" flowable:delegateExpression="${VerifyAndUpgradeSsd}">
+        <bpmn2:extensionElements>
+          <flowable:failedJobRetryTimeCycle>R3/PT1M</flowable:failedJobRetryTimeCycle>
+        </bpmn2:extensionElements>
         <bpmn2:incoming>Flow_193aa3w</bpmn2:incoming>
         <bpmn2:outgoing>Flow_0u7wb2t</bpmn2:outgoing>
       </bpmn2:serviceTask>

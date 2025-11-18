@@ -4,6 +4,9 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
+import org.flowable.spring.SpringProcessEngineConfiguration;
+import org.flowable.spring.boot.EngineConfigurationConfigurer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 @Component("flowUtils")
@@ -29,6 +32,14 @@ public class FlowUtils {
         }
     }
 
+    @Bean
+    EngineConfigurationConfigurer<SpringProcessEngineConfiguration> processEngineConfigurationEngineConfigurationConfigurer(){
+        return engineConfiguration -> {
+            engineConfiguration.setAsyncExecutorNumberOfRetries(0);
+        };
+    }
+
+
     /**
      * Calculates the number of days between now and the given date/time.
      * Returns the difference as a double (can be fractional).
@@ -43,7 +54,7 @@ public class FlowUtils {
             long secondsDiff = targetInstant.getEpochSecond() - now.getEpochSecond();
             System.err.println(dateTime+" "+ now.toString()+" "+secondsDiff);
             System.out.println(secondsDiff / ( 60 * 60 * 24)); 
-            return secondsDiff / (1000.0 * 60 * 60 * 24);
+            return secondsDiff / (60 * 60 * 24);
         } catch (Exception e) {
             throw new RuntimeException("Error parsing date/time: " + dateTime, e);
         }
